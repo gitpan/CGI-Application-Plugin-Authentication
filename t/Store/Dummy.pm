@@ -7,7 +7,8 @@ use base qw(CGI::Application::Plugin::Authentication::Store);
 
 sub initialize {
     my $self = shift;
-    $self->{__DUMMY} = {};
+    my ($storage) = $self->options;
+    $self->{__DUMMY} = $storage || {};
 }
 
 sub fetch {

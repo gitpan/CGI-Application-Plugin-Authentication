@@ -1,10 +1,12 @@
 #!/usr/bin/perl
-use Test::More tests => 45;
+use Test::More tests => 61;
 use Test::Exception;
+use Test::Warn;
 use Scalar::Util;
 use CGI;
 use strict;
 use warnings;
+use lib qw(t);
 
 {
     package TestAppConfig;
@@ -17,9 +19,10 @@ use warnings;
 
 my %config = (
     DRIVER                => [ 'Generic', { user1 => '123', user2 => '123'} ],
-    STORE                 => 'Session',
+    STORE                 => 'Store::Dummy',
     LOGIN_RUNMODE         => 'login',
     LOGOUT_RUNMODE        => 'logout',
+    POST_LOGIN_RUNMODE    => 'start',
     CREDENTIALS           => ['authen_username', 'authen_password'],
     LOGIN_SESSION_TIMEOUT => '1h',
 );
@@ -29,15 +32,16 @@ lives_ok { $cgiapp->authen->config(%config) } 'All config parameters accepted';
 
 is_deeply( $cgiapp->authen->credentials,[qw/authen_username authen_password/],'credentials set');
 isa_ok($cgiapp->authen->drivers,'CGI::Application::Plugin::Authentication::Driver::Generic');
-isa_ok($cgiapp->authen->store,'CGI::Application::Plugin::Authentication::Store::Session');
+isa_ok($cgiapp->authen->store,'Store::Dummy');
 
 %config = (
-    DRIVER                => [ 'HTPassword', file => 't/htpasswd' ],
-    STORE                 => 'Session',
-    LOGIN_DESTINATION     => '/login.cgi',
-    LOGOUT_DESTINATION    => '/',
-    CREDENTIALS           => ['authen_username', 'authen_password'],
-    LOGIN_SESSION_TIMEOUT => '1h',
+    DRIVER                 => [ 'HTPassword', file => 't/htpasswd' ],
+    STORE                  => 'Store::Dummy',
+    LOGIN_DESTINATION      => '/login.cgi',
+    LOGOUT_DESTINATION     => '/',
+    POST_LOGIN_DESTINATION => '/protected/',
+    CREDENTIALS            => ['authen_username', 'authen_password'],
+    LOGIN_SESSION_TIMEOUT  => '1h',
 );
 
 lives_ok { TestAppConfig->new->authen->config(%config) } 'All config parameters accepted';
@@ -60,6 +64,7 @@ lives_ok  { TestAppConfig->new->authen->config(LOGIN_RUNMODE => 'runmode' ) } 'c
 # test LOGIN_DESTINATION
 throws_ok { TestAppConfig->new->authen->config(LOGIN_DESTINATION => { }) } qr/parameter LOGIN_DESTINATION is not a string/, 'config dies when LOGIN_DESTINATION is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(LOGIN_DESTINATION => '/' ) } 'config accepts LOGIN_DESTINATION as a string';
+warning_like  { TestAppConfig->new->authen->config(LOGIN_DESTINATION => '/', LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGIN_DESTINATION ignored since we already have LOGIN_RUNMODE/, "LOGIN_DESTINATION ignored when LOGIN_RUNMODE is configured";
 
 # test LOGOUT_RUNMODE
 throws_ok { TestAppConfig->new->authen->config(LOGOUT_RUNMODE => { }) } qr/parameter LOGOUT_RUNMODE is not a string/, 'config dies when LOGOUT_RUNMODE is passed a hashref';
@@ -68,6 +73,16 @@ lives_ok  { TestAppConfig->new->authen->config(LOGOUT_RUNMODE => 'runmode' ) } '
 # test LOGOUT_DESTINATION
 throws_ok { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => { }) } qr/parameter LOGOUT_DESTINATION is not a string/, 'config dies when LOGOUT_DESTINATION is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => '/' ) } 'config accepts LOGOUT_DESTINATION as a string';
+warning_like  { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => '/', LOGOUT_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGOUT_DESTINATION ignored since we already have LOGOUT_RUNMODE/, "LOGOUT_DESTINATION ignored when LOGOUT_RUNMODE is configured";
+
+# test POST_LOGIN_RUNMODE
+throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_RUNMODE => { }) } qr/parameter POST_LOGIN_RUNMODE is not a string/, 'config dies when POST_LOGIN_RUNMODE is passed a hashref';
+lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_RUNMODE => 'runmode' ) } 'config accepts POST_LOGIN_RUNMODE as a string';
+
+# test POST_LOGIN_DESTINATION
+throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => { }) } qr/parameter POST_LOGIN_DESTINATION is not a string/, 'config dies when POST_LOGIN_DESTINATION is passed a hashref';
+lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => '/' ) } 'config accepts POST_LOGIN_DESTINATION as a string';
+warning_like  { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => '/', POST_LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter POST_LOGIN_DESTINATION ignored since we already have POST_LOGIN_RUNMODE/, "POST_LOGIN_DESTINATION ignored when POST_LOGIN_RUNMODE is configured";
 
 # test CREDENTIALS
 throws_ok { TestAppConfig->new->authen->config(CREDENTIALS => { }) } qr/parameter CREDENTIALS is not a string/, 'config dies when CREDENTIALS is passed a hashref';
@@ -75,9 +90,18 @@ lives_ok  { TestAppConfig->new->authen->config(CREDENTIALS => 'authen_username' 
 lives_ok  { TestAppConfig->new->authen->config(CREDENTIALS => ['authen_username', 'authen_password'] ) } 'config accepts CREDENTIALS as an arrayref';
 
 # test LOGIN_SESSION_TIMEOUT
-throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { }) } qr/parameter LOGIN_SESSION_TIMEOUT is not a string/, 'config dies when LOGIN_SESSION_TIMEOUT is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => '5h' ) } 'config accepts LOGIN_SESSION_TIMEOUT as a string';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { IDLE_FOR => 1 } ) } 'config accepts LOGIN_SESSION_TIMEOUT with IDLE_FOR option';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { EVERY => 1 } ) } 'config accepts LOGIN_SESSION_TIMEOUT with EVERY option';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { CUSTOM => sub { 1 } } ) } 'config accepts LOGIN_SESSION_TIMEOUT with CUSTOM option';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { IDLE_FOR => 1, EVERY => 1, CUSTOM => sub { 1 } } ) } 'config accepts LOGIN_SESSION_TIMEOUT as a hashref';
+
+throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => [ ]) } qr/parameter LOGIN_SESSION_TIMEOUT is not a string or a hashref/, 'config dies when LOGIN_SESSION_TIMEOUT is passed a hashref';
 throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => '5dodgy' ) } qr/parameter LOGIN_SESSION_TIMEOUT is not a valid time string/, 'config dies when LOGIN_SESSION_TIMEOUT recieves an unparsable string';
+throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { IDLE_FOR => '5dodgy' } ) } qr/IDLE_FOR option to LOGIN_SESSION_TIMEOUT is not a valid time string/, 'config dies when LOGIN_SESSION_TIMEOUT IDLE_FOR recieves an unparsable string';
+throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { EVERY => '5dodgy' } ) } qr/EVERY option to LOGIN_SESSION_TIMEOUT is not a valid time string/, 'config dies when LOGIN_SESSION_TIMEOUT EVERY recieves an unparsable string';
+throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { CUSTOM => 'notasub' } ) } qr/CUSTOM option to LOGIN_SESSION_TIMEOUT must be a code reference/, 'config dies when LOGIN_SESSION_TIMEOUT CUSTOM receives something other than a coderef';
+throws_ok { TestAppConfig->new->authen->config(LOGIN_SESSION_TIMEOUT => { BADOPTION => 1 } ) } qr/Invalid option\(s\) \(BADOPTION\) passed to LOGIN_SESSION_TIMEOUT/, 'config dies when LOGIN_SESSION_TIMEOUT recieves an unparsable string';
 
 # authen->config as a class method
 lives_ok { TestAppConfig->authen->config(%config) } 'config can be called as a class method';
@@ -90,6 +114,13 @@ lives_ok { TestAppConfig->authen->config() } 'current configuration returned';
 
 # authen->config dies when passed an invalid parameter
 throws_ok { TestAppConfig->new->authen->config(BAD_PARAM => 'foobar' ) } qr/Invalid option\(s\)/, 'config dies when passed an invalid parameter';
+
+# authen->config dies when it is called after the plugin has been initialized
+my $app = TestAppConfig->new;
+my $authen = $app->authen;
+$authen->config( \%config );
+$authen->initialize;
+throws_ok { $authen->config( \%config ) } qr/Calling config after the Authentication object has already been initialized/, 'config dies when called after initialization with new configuration info';
 
 
 # test _time_to_seconds

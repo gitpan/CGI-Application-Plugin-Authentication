@@ -7,6 +7,7 @@ Module::Build->new(
         'CGI::Application' => 4,
         'Scalar::Util' => 0,
         'Class::ISA' => 0,
+        'Attribute::Handlers' => 0,
         'UNIVERSAL::require' => 0,
     },
     recommends => {

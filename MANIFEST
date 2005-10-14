@@ -22,6 +22,10 @@ README
 t/01_basic.t
 t/02_config.t
 t/03_authenticate.t
+t/04_attributes.t
+t/05_autorunmode.t
+t/06_timeout.t
+t/07_protected_runmodes.t
 t/40_encoder_crypt.t
 t/40_encoder_lc.t
 t/40_encoder_md5.t
@@ -31,7 +35,11 @@ t/40_encoder_uc.t
 t/50_driver_generic.t
 t/51_driver_dbi.t
 t/52_dummy.t
+t/60_store.t
+t/60_store_cookie.t
+t/60_store_session.t
 t/98_pod.t
 t/99_pod_coverage.t
 t/Store/Dummy.pm
 t/TestAppDriver.pm
+t/TestAppStore.pm

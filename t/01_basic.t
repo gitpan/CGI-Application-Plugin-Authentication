@@ -35,6 +35,11 @@ use warnings;
           "warning when the plugin is used in a non-CGIApp module");
     };
 
+    {
+        local $SIG{__WARN__} = sub {}; # supress all warnings for the next line
+        CGI::Application::Plugin::Authentication->import();
+    };
+
     Test::Exception::throws_ok(
         sub { TestAppBasicNOTCA->new->authen },
         qr/CGI::Application::Plugin::Authentication->instance must be called with a CGI::Application object/,

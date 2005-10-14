@@ -1,12 +1,4 @@
-eval "use Test::Pod::Coverage";
-if ($@) {
-    print "1..0 # Skip Test::Pod::Coverage not installed\n";
-    exit;
-} 
-
-my $ARGS = {
-    also_private    => [],
-    trustme	    => [],
-};
-
-all_pod_coverage_ok( $ARGS );
+use Test::More;
+eval "use Test::Pod::Coverage 1.00";
+plan skip_all => "Test::Pod::Coverage 1.00 required for testing POD coverage" if $@;
+all_pod_coverage_ok();

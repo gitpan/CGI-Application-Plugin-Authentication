@@ -58,9 +58,8 @@ sub save {
     my %items = @_;
     my $session = $self->_session;
     while (my ($param, $value) = each %items) {
-        $session->param( &_names_to_keys($param) => $value );
-        # currently we only set the username to timeout
-        $session->expire($param => $self->{LOGIN_SESSION_TIMEOUT}) if $self->{LOGIN_SESSION_TIMEOUT} && $param eq 'AUTH_USERNAME';
+        my $key = _names_to_keys($param);
+        $session->param( $key => $value );
     }
     return 1;
 }

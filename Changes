@@ -1,4 +1,35 @@
-Revision history for Perl extension CGI::Application::Plugin::Auth.
+Revision history for Perl extension CGI::Application::Plugin::Authentication.
+
+0.06  Fri Oct 14 14:05:52 EDT 2005
+
+    Bug Fixes
+    - fix autorunmode test so it doesn't fail
+      if the AutoRunmode plugin is not installed
+
+0.05  Fri Oct 14 13:15:23 EDT 2005
+
+    New Stuff
+    - add ability to timeout logins based on last
+      successful login, or with a custom callback
+      (as well as the original last access timeout)
+    - add 'last_access' and 'last_login' methods
+    - add 'is_login_timeout' to show when a login
+      request is caused by an idle login session
+    - added lots more tests
+
+    Bug Fixes
+    - login timeouts were not working properly
+    - the Cookie Store was not honouring the EXPIRY option
+    - using :all in protected_runmodes now works
+    - fix test failure when Test::Warn not installed
+      (fixed by Shawn Sorichetti)
+
+    Experimental
+    - subroutine attributes: you can specify that a
+      runmode should be protected with a subroutine
+      attribute.  example:  sub my_rm :Authen { ... }
+      This conflicts with the AutoRunmode plugin right now
+
 
 0.04  Thu Sep 22 21:06:54 EDT 2005
 

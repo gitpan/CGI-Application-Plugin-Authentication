@@ -1,11 +1,12 @@
 ---
 name: CGI-Application-Plugin-Authentication
-version: 0.04
+version: 0.06
 author:
   - Cees Hek <ceeshek@gmail.com>
 abstract: Authentication framework for CGI::Application
 license: perl
 requires:
+  Attribute::Handlers: 0
   CGI::Application: 4
   Class::ISA: 0
   Scalar::Util: 0
@@ -22,7 +23,7 @@ build_requires:
 provides:
   CGI::Application::Plugin::Authentication:
     file: lib/CGI/Application/Plugin/Authentication.pm
-    version: 0.04
+    version: 0.06
   CGI::Application::Plugin::Authentication::Driver:
     file: lib/CGI/Application/Plugin/Authentication/Driver.pm
   CGI::Application::Plugin::Authentication::Driver::DBI:

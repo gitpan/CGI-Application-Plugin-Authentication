@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.04';
+$VERSION = '0.06';
 
 our %__CONFIG;
 
@@ -25,6 +25,18 @@ sub import {
     } else {
         $callpkg->add_callback( prerun => \&prerun_callback );
     }
+}
+
+use Attribute::Handlers;
+my %RUNMODES;
+
+sub CGI::Application::RequireAuthentication : ATTR(CODE) {
+    my ( $package, $symbol, $referent, $attr, $data, $phase ) = @_;
+    $RUNMODES{$referent} = $data || 1;
+}
+sub CGI::Application::Authen : ATTR(CODE) {
+    my ( $package, $symbol, $referent, $attr, $data, $phase ) = @_;
+    $RUNMODES{$referent} = $data || 1;
 }
 
 
@@ -310,14 +322,54 @@ that you list the username field first.
 
 =item LOGIN_SESSION_TIMEOUT
 
-Set this to the number of seconds of idle time that a login session can have before the user
-is forced to re-authenticate.  You can also specify the time by using a number with the
-following suffixes (m h d w), which represent minutes, hours, days and weeks.  The default
-is 0 which means the login will never timeout.  Note that the login is also dependant
-on the type of STORE that is used.  If the Session store is used, and the session expires,
-then the login will also automatically expire.  The same goes for cookies.
 
-  LOGIN_SESSION_TIMEOUT => '3w'
+This option can be used to tell the system when to force the user to re-authenticate.  There are
+a few different possibilities that can all be used concurrently:
+
+=over 4
+
+=item IDLE_FOR
+
+If this value is set, a re-auth will be forced if the user was idle for more then x amount of time.
+
+=item EVERY
+
+If this value is set, a re-auth will be forced every x amount of time.
+
+=item CUSTOM
+
+This value can be set to a subroutine reference that returns true if the session should be timed out,
+and false if it is still active.  This can allow you to be very selective about how the timeout system
+works.  The authen object will be passed in as the only parameter.
+
+=back
+
+Time values are specified in seconds. You can also specify the time by using a number with the
+following suffixes (m h d w), which represent minutes, hours, days and weeks.  The default
+is 0 which means the login will never timeout.
+
+Note that the login is also dependant on the type of STORE that is used.  If the Session store is used,
+and the session expires, then the login will also automatically expire.  The same goes for the Cookie
+store.
+
+For backwards compatibility, if you set LOGIN_SESSION_TIMEOUT to a time value instead of a hashref,
+it will be treated as an IDLE_FOR time out.
+
+  # force re-auth if idle for more than 15 minutes
+  LOGIN_SESSION_TIMEOUT => '15m'
+
+  # Everyone must re-auth if idle for more than 30 minutes
+  # also, everyone must re-auth at least once a day
+  # and root must re-auth if idle for more than 5 minutes
+  LOGIN_SESSION_TIMEOUT => {
+        IDLE_FOR => '30m',
+        EVERY    => '1d',
+        CUSTOM   => sub {
+          my $authen = shift;
+          return ($authen->username eq 'root' && (time() - $authen->last_access) > 300) ? 1 : 0;
+        }
+  }
+
 
 =back
 
@@ -327,8 +379,8 @@ sub config {
     my $self  = shift;
     my $class = ref $self ? ref $self : $self;
 
-    die "Calling config after the Authentication object has already been created"
-        if ref $self && @_ && defined $self->{__CAP_AUTHENTICATION_INSTANCE};
+    die "Calling config after the Authentication object has already been initialized"
+        if ref $self && defined $self->{initialized};
     my $config = $self->_config;
 
     if (@_) {
@@ -424,14 +476,30 @@ sub config {
 
         # Check for LOGIN_SESSION_TIMEOUT
         if ( defined $props->{LOGIN_SESSION_TIMEOUT} ) {
-            croak "authen config error:  parameter LOGIN_SESSION_TIMEOUT is not a string"
-              if ref $props->{LOGIN_SESSION_TIMEOUT};
-            my $timeout = _time_to_seconds( delete $props->{LOGIN_SESSION_TIMEOUT} );
-            if (defined $timeout) {
-                $config->{LOGIN_SESSION_TIMEOUT} = $timeout;
+            croak "authen config error:  parameter LOGIN_SESSION_TIMEOUT is not a string or a hashref"
+              if ref $props->{LOGIN_SESSION_TIMEOUT} && ref$props->{LOGIN_SESSION_TIMEOUT} ne 'HASH';
+            my $options = {};
+            if (! ref $props->{LOGIN_SESSION_TIMEOUT}) {
+                $options->{IDLE_FOR} = _time_to_seconds( $props->{LOGIN_SESSION_TIMEOUT} );
+                croak "authen config error: parameter LOGIN_SESSION_TIMEOUT is not a valid time string" unless defined $options->{IDLE_FOR};
             } else {
-                croak "authen config error:  parameter LOGIN_SESSION_TIMEOUT is not a valid time string";
+                if ($props->{LOGIN_SESSION_TIMEOUT}->{IDLE_FOR}) {
+                    $options->{IDLE_FOR} = _time_to_seconds( delete $props->{LOGIN_SESSION_TIMEOUT}->{IDLE_FOR} );
+                    croak "authen config error: IDLE_FOR option to LOGIN_SESSION_TIMEOUT is not a valid time string" unless defined $options->{IDLE_FOR};
+                }
+                if ($props->{LOGIN_SESSION_TIMEOUT}->{EVERY}) {
+                    $options->{EVERY} = _time_to_seconds( delete $props->{LOGIN_SESSION_TIMEOUT}->{EVERY} );
+                    croak "authen config error: EVERY option to LOGIN_SESSION_TIMEOUT is not a valid time string" unless defined $options->{EVERY};
+                }
+                if ($props->{LOGIN_SESSION_TIMEOUT}->{CUSTOM}) {
+                    $options->{CUSTOM} = delete $props->{LOGIN_SESSION_TIMEOUT}->{CUSTOM};
+                    croak "authen config error: CUSTOM option to LOGIN_SESSION_TIMEOUT must be a code reference" unless ref $options->{CUSTOM} eq 'CODE';
+                }
+                croak "authen config error: Invalid option(s) (" . join( ', ', keys %{$props->{LOGIN_SESSION_TIMEOUT}} ) . ") passed to LOGIN_SESSION_TIMEOUT" if %{$props->{LOGIN_SESSION_TIMEOUT}};
             }
+
+            $config->{LOGIN_SESSION_TIMEOUT} = $options;
+            delete $props->{LOGIN_SESSION_TIMEOUT};
         }
 
         # If there are still entries left in $props then they are invalid
@@ -444,7 +512,9 @@ sub config {
 This method takes a list of runmodes that are to be protected by authentication.  If a user
 tries to access one of these runmodes, then they will be redirected to a login page
 unless they are properly logged in.  The runmode names can be a list of simple strings, regular
-expressions, or special directives that start with a colon
+expressions, or special directives that start with a colon.  This method is cumulative, so
+if it is called multiple times, the new values are added to existing entries.  It returns
+a list of all entries that have been saved so far.
 
 =over 4
 
@@ -491,7 +561,7 @@ sub is_protected_runmode {
         } elsif (ref $runmode_test && ref $runmode_test eq 'CODE') {
             # We were passed a code reference
             return 1 if $runmode_test->($runmode);
-        } elsif ($runmode eq ':all') {
+        } elsif ($runmode_test eq ':all') {
             # all runmodes are protected
             return 1;
         } else {
@@ -499,6 +569,11 @@ sub is_protected_runmode {
             return 1 if $runmode eq $runmode_test;
         }
     }
+
+    # See if the user is using attributes
+    my $sub = $self->_cgiapp->can($runmode);
+    return 1 if $sub && $RUNMODES{$sub};
+
     return;
 }
 
@@ -527,9 +602,11 @@ sub redirect_after_login {
     } elsif (my $destination = $cgiapp->query->param('destination')) {
         $cgiapp->header_add(-location => $destination);
         $cgiapp->prerun_mode('authen_dummy_redirect');
-    } else {
-        $cgiapp->header_add(-location => $cgiapp->query->url(absolute => 1));
-        $cgiapp->prerun_mode('authen_dummy_redirect');
+#--------------------------------------------------
+#     } else {
+#         $cgiapp->header_add(-location => $cgiapp->query->url(absolute => 1));
+#         $cgiapp->prerun_mode('authen_dummy_redirect');
+#-------------------------------------------------- 
     }
 }
 
@@ -605,6 +682,59 @@ sub setup_runmodes {
     return;
 }
 
+=head2 last_login
+
+This will return return the time of the last login for this user
+
+  my $last_login = $self->authen->last_login;
+
+=cut
+
+sub last_login {
+    my $self = shift;
+    my $new  = shift;
+    $self->initialize;
+
+    return unless $self->username;
+    my $old = $self->store->fetch('last_login');
+    $self->store->save('last_login' => $new) if $new;
+    return $old;
+}
+
+=head2 last_access
+
+This will return return the time of the last access for this user
+
+  my $last_access = $self->authen->last_access;
+
+=cut
+
+sub last_access {
+    my $self = shift;
+    my $new  = shift;
+    $self->initialize;
+
+    return unless $self->username;
+    my $old = $self->store->fetch('last_access');
+    $self->store->save('last_access' => $new) if $new;
+    return $old;
+}
+
+=head2 is_login_timeout
+
+This will return true or false depending on whether the users login status just timed out
+
+  $self->add_message('login session timed out') if $self->authen->is_login_timeout;
+
+=cut
+
+sub is_login_timeout {
+    my $self = shift;
+    $self->initialize;
+
+    return $self->{is_login_timeout} ? 1 : 0;
+}
+
 =head2 is_authenticated
 
 This will return true or false depending on the login status of this user
@@ -635,7 +765,8 @@ sub login_attempts {
     my $self = shift;
     $self->initialize;
 
-    return $self->store->login_attempts;
+    my $la = $self->store->fetch('login_attempts');
+    return $la;
 }
 
 =head2 username
@@ -651,7 +782,8 @@ sub username {
     my $self = shift;
     $self->initialize;
 
-    return $self->store->current_username;
+    my $u = $self->store->fetch('username');
+    return $u;
 }
 
 =head2 is_new_login
@@ -698,7 +830,7 @@ sub logout {
     my $self = shift;
     $self->initialize;
 
-    $self->store->logout;
+    $self->store->clear;
 }
 
 =head2 drivers
@@ -807,28 +939,41 @@ sub initialize {
         # The user is trying to login
         # make sure if they are already logged in, that we log them out first
         my $store = $self->store;
-        $store->logout;
+        $store->clear if $store->fetch('username');
         foreach my $driver ($self->drivers) {
             if (my $username = $driver->verify_credentials(@credentials)) {
                 # This user provided the correct credentials
                 # so save this new login in the store
-                $store->new_login($username);
+                my $now = time();
+                $store->save( username => $username,  login_attempts => 0, last_login => $now, last_access => $now );
                 $self->{is_new_login} = 1;
                 last;
             }
         }
         unless ($self->username) {
             # password mismatch - increment failed login attempts
-            $store->failed_login_attempt;
+            my $attempts = $store->fetch('login_attempts') || 0; 
+            $store->save( login_attempts => $attempts + 1 );
         }
     }
 
-#--------------------------------------------------
-#     if ($self->store->current_username) {
-#         # user is already logged in
-#         return;
-#     }
-#-------------------------------------------------- 
+    if ($self->username && $config->{LOGIN_SESSION_TIMEOUT} && !$self->{is_new_login}) {
+        # This is not a fresh login, and there are time out rules, so make sure the login is still valid
+        if ($config->{LOGIN_SESSION_TIMEOUT}->{IDLE_FOR} && time() - $self->last_access >= $config->{LOGIN_SESSION_TIMEOUT}->{IDLE_FOR}) {
+            # this login has been idle for too long
+            $self->{is_login_timeout} = 1;
+            $self->logout;
+        } elsif ($config->{LOGIN_SESSION_TIMEOUT}->{EVERY} && time() - $self->last_login >=  $config->{LOGIN_SESSION_TIMEOUT}->{EVERY}) {
+            # it has been too long since the last login
+            $self->{is_login_timeout} = 1;
+            $self->logout;
+        } elsif ($config->{LOGIN_SESSION_TIMEOUT}->{CUSTOM} && $config->{LOGIN_SESSION_TIMEOUT}->{CUSTOM}->($self)) {
+            # this login has timed out
+            $self->{is_login_timeout} = 1;
+            $self->logout;
+        }
+
+    }
 
 }
 
@@ -1077,6 +1222,14 @@ sub prerun_callback {
     if ($authen->is_new_login) {
         # User just logged in, so where to we send them?
         return $self->authen->redirect_after_login;
+    }
+
+    # Update any time out info
+    my $config = $authen->_config;
+    if ( $config->{LOGIN_SESSION_TIMEOUT} ) {
+        # update the last access time
+        my $now = time;
+        $authen->last_access($now);
     }
 
     if ($authen->is_protected_runmode($self->get_current_runmode)) {

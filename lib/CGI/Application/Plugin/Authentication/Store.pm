@@ -42,7 +42,7 @@ data that is to be stored.
 
 =head1 METHODS TO OVERRIDE
 
-The following three methods should be provided by the subclass.
+The following three (and one optional) methods should be provided by the subclass.
 
 
 =head2 fetch
@@ -54,7 +54,7 @@ matching those parameters.
 
 sub fetch {
     my $self = shift;
-    my $class = ref $self ? ref $self : $self;
+    my $class = ref $self;
     die "fetch must be implemented in the $class subclass";
 }
 
@@ -66,7 +66,7 @@ This method accepts a hash of parameters and values and will save those paramete
 
 sub save {
     my $self = shift;
-    my $class = ref $self ? ref $self : $self;
+    my $class = ref $self;
     die "save must be implemented in the $class subclass";
 }
 
@@ -78,8 +78,20 @@ This method accepts a list of parameters and will delete those parameters from t
 
 sub delete {
     my $self = shift;
-    my $class = ref $self ? ref $self : $self;
+    my $class = ref $self;
     die "delete must be implemented in the $class subclass";
+}
+
+=head2 clear
+
+A call to this method will remove all information about the current user out of the store (should
+be provided by the subclass, but is not required to be).
+
+=cut
+
+sub clear {
+    my $self = shift;
+    $self->delete('username', 'login_attempts', 'last_access', 'last_login');
 }
 
 
@@ -146,83 +158,6 @@ not be necesary to access this.
 sub authen {
     my $self = shift;
     $self->{authen};
-}
-
-=head2 current_username
-
-This method returns the username of the user that is currently logged in, or in the case there is
-no user logged in, it returns undef.
-
-=cut 
-
-sub current_username {
-    my $self = shift;
-    my ($username) = $self->fetch('username');
-    return $username;
-}
-
-=head2 new_login
-
-This method is called on a new login and is passed the username of the user that just logged in.
-The username will be saved in the store for later retrieval and the failed login attempts
-counter will be reset to zero.
-
-=cut
-
-sub new_login {
-    my $self     = shift;
-    my $username = shift;
-    $self->save( username => $username, login_attempts => 0 );
-    return 1;
-}
-
-=head2 login_attempts
-
-This method returns the number of failed login attempts have occured for this user.
-
-=cut
-
-sub login_attempts {
-    my $self = shift;
-    my ($login_attempts) = $self->fetch('login_attempts');
-    return $login_attempts;
-}
-
-=head2 failed_login_attempt
-
-A call to this method will increment the failed login attempts counter by one.
-
-=cut
-
-sub failed_login_attempt {
-    my $self = shift;
-    my $attempts = $self->login_attempts;
-    $attempts++;
-    $self->save( login_attempts => $attempts );
-    return $attempts;
-}
-
-=head2 reset_login_attempts
-
-A call to this method will reset the failed login attempts counter to zero.
-
-=cut
-
-sub reset_login_attempts {
-    my $self = shift;
-    $self->save( login_attempts => 0 );
-    return 1;
-}
-
-=head2 logout
-
-A call to this method will remove all information about the current user out of the store.
-
-=cut
-
-sub logout {
-    my $self = shift;
-    $self->delete('username', 'login_attempts') if $self->current_username;
 }
 
 

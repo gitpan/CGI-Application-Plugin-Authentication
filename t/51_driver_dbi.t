@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 use Test::More;
-#use Test::More qw(no_plan);
 use lib qw(t);
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite required for this test" if $@;

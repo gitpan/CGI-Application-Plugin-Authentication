@@ -11,6 +11,7 @@ WriteMakefile
                            'Scalar::Util' => 0,
                            'CGI::Application' => 4,
                            'Test::Exception' => 0,
+                           'Attribute::Handlers' => 0,
                            'Class::ISA' => 0,
                            'UNIVERSAL::require' => 0
                          }

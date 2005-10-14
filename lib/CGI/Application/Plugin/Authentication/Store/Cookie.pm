@@ -6,6 +6,20 @@ use warnings;
 use base qw(CGI::Application::Plugin::Authentication::Store);
 use UNIVERSAL::require;
 
+# CONFIGURABLE OPTIONS
+#
+# - SECRET
+#
+# If this value is defined, it will be used to protect
+# the Cookie values from tampering.  To generate a good
+# secret, run the following perl script and cut and paste
+# the value it generates into this variable.
+#
+# perl -MDigest::MD5=md5_base64 -l -e 'print md5_base64($$,time(),rand(9999))'
+#
+our $SECRET = '';
+
+
 =head1 NAME
 
 CGI::Application::Plugin::Authentication::Store::Cookie - Cookie based Store
@@ -24,11 +38,52 @@ CGI::Application::Plugin::Authentication::Store::Cookie - Cookie based Store
 =head1 DESCRIPTION
 
 This module uses a cookie to store authentication information across multiple requests.
-It works by creating a cookie that contains the information we would like to store, then base64
-the data.  In order to ensure the the information was not manipulated by the user, we include
+It works by creating a cookie that contains the information we would like to store (like
+the name of the user that is currently authenticated), and then base64 encoding
+the data.  In order to ensure that the information is not manipulated by the end-user, we include
 a CRC checksum that is generated along with our secret.  Since the user does not know the value
-of the secret, the will not be able to recreate the checksum after change some values, so we
-will be able to tell if the information has been manipulated.
+of the secret, they will not be able to recreate the checksum if they change some of the values, so we
+will be able to tell if the information in the cookie has been manipulated.
+
+=head1 THE SECRET
+
+=head2 Choosing a good secret
+
+An easy way to generate a relatively good secret is to run the following perl snippet:
+
+  perl -MDigest::MD5=md5_base64 -l -e 'print md5_base64($$,time(),rand(9999))'
+
+Just use the resulting string as your secret.
+
+=head2 Configuring the secret
+
+There are three ways that you can provide a secret to the module:
+
+=over 4
+
+=item Hardcode the secret
+
+You can hardcode a secret right in the CGI::Application::Plugin::Authentication::Store::Cookie module,
+so that you don't have to remember to provide one every time you use the module.  Just open the
+source in a text editor and look at the top of the file where it defines 'our $SECRET' and follow
+the instruction listed there.
+
+=item Provide the SECRET option when using the module
+
+You can also just provide the secret as an option when using the module using the SECRET
+parameter.
+
+  __PACKAGE__->authen->config(
+        STORE => ['Cookie', SECRET => "Shhh, don't tell anyone"],
+  );
+
+=item Let the module choose a secret for you
+
+And lastly, if you forget to do either of these, the module will use the name of your application
+as the secret, but that is not a very good value to use, so a warning will be spit out everytime
+it uses this.  This is the least desirable choice, and is only included as a last resort.
+
+=back
 
 =head1 DEPENDENCIES
 
@@ -117,7 +172,7 @@ sub initialize {
         my $rawdata = $cookies{$self->cookie_name}->value;
         $self->{cookie}->{data} = $self->_decode($rawdata);
     }
-    $self->_register_postrun_callback;
+#    $self->_register_postrun_callback;
 
     return;
 }
@@ -158,7 +213,12 @@ sub _postrun_callback {
     my $store = $self->authen->store;
     my $rawdata = $store->_encode($store->{cookie}->{data});
 
-    my $cookie = new CGI::Cookie(-name => $store->cookie_name,-value => $rawdata);
+    my %cookie_params = (
+        -name => $store->cookie_name,
+        -value => $rawdata,
+    );
+    $cookie_params{'-expiry'} = $store->{cookie}->{options}->{EXPIRY} if $store->{cookie}->{options}->{EXPIRY};
+    my $cookie = new CGI::Cookie(%cookie_params);
     $self->header_add(-cookie => [$cookie]);
     return;
 }
@@ -174,7 +234,7 @@ sub _decode {
 
     my $checksum = delete $hash{c};
     # verify checksum
-    if ($checksum eq Digest::SHA1::sha1_base64(join("\0", $self->{cookie}->{options}->{SECRET}, sort values %hash))) {
+    if ($checksum eq Digest::SHA1::sha1_base64(join("\0", $self->_secret, sort values %hash))) {
         # Checksum verifies so the data is clean
         return \%hash;
     } else {
@@ -191,12 +251,24 @@ sub _encode {
     my $hash = shift;
     my %hash = %$hash;
 
-    my $checksum = Digest::SHA1::sha1_base64(join("\0", $self->{cookie}->{options}->{SECRET}, sort values %hash));
+    my $checksum = Digest::SHA1::sha1_base64(join("\0", $self->_secret, sort values %hash));
     $hash{c} = $checksum;
     my $rawdata = join("\0", map { join('=', $_, $hash{$_}) } keys %hash);
     return MIME::Base64::encode($rawdata, "");
 }
 
+# _secret
+#
+# A unique value for this application that is used to secure the Cookies
+sub _secret {
+    my $self = shift;
+    my $secret = $self->{cookie}->{options}->{SECRET} || $SECRET;
+    unless ($secret) {
+        $secret = Digest::SHA1::sha1_base64( ref $self->authen->_cgiapp );
+        warn "using default SECRET!  Please provide a proper SECRET when using the Cookie store (See CGI::Application::Plugin::Authentication::Store::Cookie for details)";
+    }
+    return $secret;
+}
 
 =head1 SEE ALSO
 

@@ -24,10 +24,12 @@ you can used the included Makefile.PL and run the following commands:
 
 DEPENDENCIES
 
-CGI::Application
+CGI::Application >= 4.0
 Scalar::Util
 Class::ISA
 Test::More
+Test::Exception
+Attribute::Handlers
 UNIVERSAL::require
 
 RECOMMENDED MODULES
