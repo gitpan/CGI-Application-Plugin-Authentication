@@ -1,5 +1,25 @@
 Revision history for Perl extension CGI::Application::Plugin::Authentication.
 
+0.07  Sat Oct 29 17:08:48 EDT 2005
+
+    API Changes
+    - Config parameters ending in _DESTINATION have
+      been renamed to _URL for clarity.
+      (Mark Stosberg)
+
+    Bug Fixes
+    - DBI Driver was incorrectly using DBH option when
+      it should have used the DSN option
+      (patch from Jim McQuillan)
+    - Tests were failing if certain modules were not
+      installed.
+      (fixed by Shawn Sorichetti)
+
+    Other updates
+    - add negative regexp example for the
+      'protected_runmodes' method
+      (suggested by Larry Leszczynski)
+
 0.06  Fri Oct 14 14:05:52 EDT 2005
 
     Bug Fixes

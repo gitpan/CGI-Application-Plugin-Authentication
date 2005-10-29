@@ -7,11 +7,12 @@ WriteMakefile
           'NAME' => 'CGI::Application::Plugin::Authentication',
           'VERSION_FROM' => 'lib/CGI/Application/Plugin/Authentication.pm',
           'PREREQ_PM' => {
-                           'Test::More' => 0,
                            'Scalar::Util' => 0,
-                           'CGI::Application' => 4,
                            'Test::Exception' => 0,
                            'Attribute::Handlers' => 0,
+                           'Test::More' => 0,
+                           'CGI::Application' => 4,
+                           'Test::Warn' => 0,
                            'Class::ISA' => 0,
                            'UNIVERSAL::require' => 0
                          }

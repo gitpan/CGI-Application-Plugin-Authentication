@@ -258,7 +258,7 @@ sub verify_credentials {
         $dbh = $options{DBH};
     } elsif ( $options{DSN} ) {
         no warnings qw(uninitialized);
-        $dbh = DBI->connect( $options{DBH}, $options{DB_USER}, $options{DB_PASSWORD}, $options{DBI_OPTIONS} )
+        $dbh = DBI->connect( $options{DSN}, $options{DB_USER}, $options{DB_PASSWORD}, $options{DBI_OPTIONS} )
           or die $DBI::errstr;
     } else {
         die "No DBH or DSN parameter passed to the DBI Driver";

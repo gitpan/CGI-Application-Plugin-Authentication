@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 our %__CONFIG;
 
@@ -113,7 +113,7 @@ the best one for you.
 
 The Authentication plugin comes with a default login page that can be used if you do not
 want to create a custom login page.  This login form will automatically be used if you
-do not provide either a LOGIN_DESTINATION or LOGIN_RUNMODE parameter in the configuration.
+do not provide either a LOGIN_URL or LOGIN_RUNMODE parameter in the configuration.
 If you plan to create your own login page, I would recommend that you start with the HTML
 code for the default login page, so that your login page will contain the correct form
 fields and hidden fields.
@@ -134,7 +134,7 @@ The Authentication plugin will require at least the 'username' to be retrieved f
 ticket.  A Ticket based authentication scheme will not need a Driver module at all, since the
 actual verification of credentials is done by an external authentication system, possibly
 even on a different host.  You will need to specify the location of the login page using
-the LOGIN_DESTINATION configuration variable, and un-authenticated users will automatically
+the LOGIN_URL configuration variable, and un-authenticated users will automatically
 be redirected to your ticket authentication login page.
 
 
@@ -262,15 +262,15 @@ parameter.
 
 Here you can specify a runmode that the user will be redirected to if they successfully login.
 
-  POST_LOGIN_RUNMODE => 'login'
+  POST_LOGIN_RUNMODE => 'welcome'
 
-=item POST_LOGIN_DESTINATION
+=item POST_LOGIN_URL
 
 Here you can specify a URL that the user will be redirected to if they successfully login.
-If both POST_LOGIN_DESTINATION and POST_LOGIN_RUNMODE are specified, then the latter
+If both POST_LOGIN_URL and POST_LOGIN_RUNMODE are specified, then the latter
 will take precedence.
 
-  POST_LOGIN_DESTINATION => 'http://example.com/start.cgi'
+  POST_LOGIN_URL => 'http://example.com/start.cgi'
 
 
 =item LOGIN_RUNMODE
@@ -279,13 +279,13 @@ Here you can specify a runmode that the user will be redirected to if they need 
 
   LOGIN_RUNMODE => 'login'
 
-=item LOGIN_DESTINATION
+=item LOGIN_URL
 
 If your login page is external to this module, then you can use this option to specify a
 URL that the user will be redirected to when they need to login. If both
-LOGIN_DESTINATION and LOGIN_RUNMODE are specified, then the latter will take precedence.
+LOGIN_URL and LOGIN_RUNMODE are specified, then the latter will take precedence.
 
-  LOGIN_DESTINATION => 'http://example.com/login.cgi'
+  LOGIN_URL => 'http://example.com/login.cgi'
 
 =item LOGOUT_RUNMODE
 
@@ -293,13 +293,13 @@ Here you can specify a runmode that the user will be redirected to if they ask t
 
   LOGOUT_RUNMODE => 'logout'
 
-=item LOGOUT_DESTINATION
+=item LOGOUT_URL
 
 If your logout page is external to this module, then you can use this option to specify a
 URL that the user will be redirected to when they ask to logout.  If both
-LOGOUT_DESTINATION and LOGOUT_RUNMODE are specified, then the latter will take precedence.
+LOGOUT_URL and LOGOUT_RUNMODE are specified, then the latter will take precedence.
 
-  LOGIN_DESTINATION => 'http://example.com/logout.html'
+  LOGIN_URL => 'http://example.com/logout.html'
 
 
 =item CREDENTIALS
@@ -423,13 +423,20 @@ sub config {
             $config->{POST_LOGIN_RUNMODE} = delete $props->{POST_LOGIN_RUNMODE};
         }
 
-        # Check for POST_LOGIN_DESTINATION
+        # Check for depricated POST_LOGIN_DESTINATION
         if ( defined $props->{POST_LOGIN_DESTINATION} ) {
-            carp "authen config warning:  parameter POST_LOGIN_DESTINATION ignored since we already have POST_LOGIN_RUNMODE"
+            warn "POST_LOGIN_DESTINATION has been depricated in favour of POST_LOGIN_URL";
+            croak "can't use POST_LOGIN_DESTINATION and POST_LOGIN_URL at the same time as they are equivalent" if defined $props->{POST_LOGIN_URL};
+            $props->{POST_LOGIN_URL} = delete $props->{POST_LOGIN_DESTINATION};
+        }
+
+        # Check for POST_LOGIN_URL
+        if ( defined $props->{POST_LOGIN_URL} ) {
+            carp "authen config warning:  parameter POST_LOGIN_URL ignored since we already have POST_LOGIN_RUNMODE"
               if $config->{POST_LOGIN_RUNMODE};
-            croak "authen config error:  parameter POST_LOGIN_DESTINATION is not a string"
-              if ref $props->{POST_LOGIN_DESTINATION};
-            $config->{POST_LOGIN_DESTINATION} = delete $props->{POST_LOGIN_DESTINATION};
+            croak "authen config error:  parameter POST_LOGIN_URL is not a string"
+              if ref $props->{POST_LOGIN_URL};
+            $config->{POST_LOGIN_URL} = delete $props->{POST_LOGIN_URL};
         }
 
         # Check for LOGIN_RUNMODE
@@ -439,13 +446,20 @@ sub config {
             $config->{LOGIN_RUNMODE} = delete $props->{LOGIN_RUNMODE};
         }
 
-        # Check for LOGIN_DESTINATION
+        # Check for depricated LOGIN_DESTINATION
         if ( defined $props->{LOGIN_DESTINATION} ) {
-            carp "authen config warning:  parameter LOGIN_DESTINATION ignored since we already have LOGIN_RUNMODE"
+            warn "LOGIN_DESTINATION has been depricated in favour of LOGIN_URL";
+            croak "can't use LOGIN_DESTINATION and LOGIN_URL at the same time as they are equivalent" if defined $props->{LOGIN_URL};
+            $props->{LOGIN_URL} = delete $props->{LOGIN_DESTINATION};
+        }
+
+        # Check for LOGIN_URL
+        if ( defined $props->{LOGIN_URL} ) {
+            carp "authen config warning:  parameter LOGIN_URL ignored since we already have LOGIN_RUNMODE"
               if $config->{LOGIN_RUNMODE};
-            croak "authen config error:  parameter LOGIN_DESTINATION is not a string"
-              if ref $props->{LOGIN_DESTINATION};
-            $config->{LOGIN_DESTINATION} = delete $props->{LOGIN_DESTINATION};
+            croak "authen config error:  parameter LOGIN_URL is not a string"
+              if ref $props->{LOGIN_URL};
+            $config->{LOGIN_URL} = delete $props->{LOGIN_URL};
         }
 
         # Check for LOGOUT_RUNMODE
@@ -455,13 +469,20 @@ sub config {
             $config->{LOGOUT_RUNMODE} = delete $props->{LOGOUT_RUNMODE};
         }
 
-        # Check for LOGOUT_DESTINATION
+        # Check for depricated LOGOUT_DESTINATION
         if ( defined $props->{LOGOUT_DESTINATION} ) {
-            carp "authen config warning:  parameter LOGOUT_DESTINATION ignored since we already have LOGOUT_RUNMODE"
+            warn "LOGOUT_DESTINATION has been depricated in favour of LOGOUT_URL";
+            croak "can't use LOGOUT_DESTINATION and LOGOUT_URL at the same time as they are equivalent" if defined $props->{LOGOUT_URL};
+            $props->{LOGOUT_URL} = delete $props->{LOGOUT_DESTINATION};
+        }
+
+        # Check for LOGOUT_URL
+        if ( defined $props->{LOGOUT_URL} ) {
+            carp "authen config warning:  parameter LOGOUT_URL ignored since we already have LOGOUT_RUNMODE"
               if $config->{LOGOUT_RUNMODE};
-            croak "authen config error:  parameter LOGOUT_DESTINATION is not a string"
-              if ref $props->{LOGOUT_DESTINATION};
-            $config->{LOGOUT_DESTINATION} = delete $props->{LOGOUT_DESTINATION};
+            croak "authen config error:  parameter LOGOUT_URL is not a string"
+              if ref $props->{LOGOUT_URL};
+            $config->{LOGOUT_URL} = delete $props->{LOGOUT_URL};
         }
 
         # Check for CREDENTIALS
@@ -531,6 +552,9 @@ a list of all entries that have been saved so far.
   # protect only runmodes that start with auth_
   __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
+  # protect all runmodes that *do not* start with public_
+  __PACKAGE__->authen->protected_runmodes(qr/^(?!public_)/);
+
 =cut
 
 sub protected_runmodes {
@@ -583,7 +607,7 @@ This method is be called during the prerun stage to
 redirect the user to the page that has been configured
 as the destination after a successful login.  The location
 is based on the values of the POST_LOGIN_RUNMODE or 
-POST_LOGIN_DESTINATION config parameter, or in their absense,
+POST_LOGIN_URL config parameter, or in their absense,
 the page will be redirected to the page that was originally
 requested when the login page was triggered.
 
@@ -596,8 +620,8 @@ sub redirect_after_login {
 
     if ($config->{POST_LOGIN_RUNMODE}) {
         $cgiapp->prerun_mode($config->{POST_LOGIN_RUNMODE});
-    } elsif ($config->{POST_LOGIN_DESTINATION}) {
-        $cgiapp->header_add(-location => $config->{POST_LOGIN_DESTINATION});
+    } elsif ($config->{POST_LOGIN_URL}) {
+        $cgiapp->header_add(-location => $config->{POST_LOGIN_URL});
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } elsif (my $destination = $cgiapp->query->param('destination')) {
         $cgiapp->header_add(-location => $destination);
@@ -616,7 +640,7 @@ This method is be called during the prerun stage if
 the current user is not logged in, and they are trying to
 access a protected runmode.  It will redirect to the page
 that has been configured as the login page, based on the value
-of LOGIN_RUNMODE or LOGIN_DESTINATION.  If nothing is configured
+of LOGIN_RUNMODE or LOGIN_URL  If nothing is configured
 a simple login page will be automatically provided.
 
 =cut
@@ -628,8 +652,8 @@ sub redirect_to_login {
 
     if ($config->{LOGIN_RUNMODE}) {
         $cgiapp->prerun_mode($config->{LOGIN_RUNMODE});
-    } elsif ($config->{LOGIN_DESTINATION}) {
-        $cgiapp->header_add(-location => $config->{LOGIN_DESTINATION});
+    } elsif ($config->{LOGIN_URL}) {
+        $cgiapp->header_add(-location => $config->{LOGIN_URL});
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } else {
         $cgiapp->prerun_mode('authen_login');
@@ -641,7 +665,7 @@ sub redirect_to_login {
 This method is called during the prerun stage if the user
 has requested to be logged out.  It will redirect to the page
 that has been configured as the logout page, based on the value
-of LOGOUT_RUNMODE or LOGOUT_DESTINATION.  If nothing is
+of LOGOUT_RUNMODE or LOGOUT_URL  If nothing is
 configured, the page will redirect to the website homepage.
 
 =cut
@@ -654,8 +678,8 @@ sub redirect_to_logout {
 
     if ($config->{LOGOUT_RUNMODE}) {
         $cgiapp->prerun_mode($config->{LOGOUT_RUNMODE});
-    } elsif ($config->{LOGOUT_DESTINATION}) {
-        $cgiapp->header_add(-location => $config->{LOGOUT_DESTINATION});
+    } elsif ($config->{LOGOUT_URL}) {
+        $cgiapp->header_add(-location => $config->{LOGOUT_URL});
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } else {
         $cgiapp->header_add(-location => '/');
@@ -675,9 +699,9 @@ sub setup_runmodes {
     my $config = $self->_config;
 
     $self->_cgiapp->run_modes( authen_login => \&authen_login_runmode )
-      unless $config->{LOGIN_RUNMODE} || $config->{LOGIN_DESTINATION};
+      unless $config->{LOGIN_RUNMODE} || $config->{LOGIN_URL};
     $self->_cgiapp->run_modes( authen_logout => \&authen_logout_runmode )
-      unless $config->{LOGOUT_RUNMODE} || $config->{LOGOUT_DESTINATION};
+      unless $config->{LOGOUT_RUNMODE} || $config->{LOGOUT_URL};
     $self->_cgiapp->run_modes( authen_dummy_redirect => \&authen_dummy_redirect );
     return;
 }

@@ -37,9 +37,9 @@ isa_ok($cgiapp->authen->store,'Store::Dummy');
 %config = (
     DRIVER                 => [ 'HTPassword', file => 't/htpasswd' ],
     STORE                  => 'Store::Dummy',
-    LOGIN_DESTINATION      => '/login.cgi',
-    LOGOUT_DESTINATION     => '/',
-    POST_LOGIN_DESTINATION => '/protected/',
+    LOGIN_URL              => '/login.cgi',
+    LOGOUT_URL             => '/',
+    POST_LOGIN_URL         => '/protected/',
     CREDENTIALS            => ['authen_username', 'authen_password'],
     LOGIN_SESSION_TIMEOUT  => '1h',
 );
@@ -61,28 +61,28 @@ lives_ok  { TestAppConfig->new->authen->config(STORE => [ 'MODULE', option => 'p
 throws_ok { TestAppConfig->new->authen->config(LOGIN_RUNMODE => { }) } qr/parameter LOGIN_RUNMODE is not a string/, 'config dies when LOGIN_RUNMODE is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(LOGIN_RUNMODE => 'runmode' ) } 'config accepts LOGIN_RUNMODE as a string';
 
-# test LOGIN_DESTINATION
-throws_ok { TestAppConfig->new->authen->config(LOGIN_DESTINATION => { }) } qr/parameter LOGIN_DESTINATION is not a string/, 'config dies when LOGIN_DESTINATION is passed a hashref';
-lives_ok  { TestAppConfig->new->authen->config(LOGIN_DESTINATION => '/' ) } 'config accepts LOGIN_DESTINATION as a string';
-warning_like  { TestAppConfig->new->authen->config(LOGIN_DESTINATION => '/', LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGIN_DESTINATION ignored since we already have LOGIN_RUNMODE/, "LOGIN_DESTINATION ignored when LOGIN_RUNMODE is configured";
+# test LOGIN_URL
+throws_ok { TestAppConfig->new->authen->config(LOGIN_URL => { }) } qr/parameter LOGIN_URL is not a string/, 'config dies when LOGIN_URL is passed a hashref';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_URL => '/' ) } 'config accepts LOGIN_URL as a string';
+warning_like  { TestAppConfig->new->authen->config(LOGIN_URL => '/', LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGIN_URL ignored since we already have LOGIN_RUNMODE/, "LOGIN_URL ignored when LOGIN_RUNMODE is configured";
 
 # test LOGOUT_RUNMODE
 throws_ok { TestAppConfig->new->authen->config(LOGOUT_RUNMODE => { }) } qr/parameter LOGOUT_RUNMODE is not a string/, 'config dies when LOGOUT_RUNMODE is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(LOGOUT_RUNMODE => 'runmode' ) } 'config accepts LOGOUT_RUNMODE as a string';
 
-# test LOGOUT_DESTINATION
-throws_ok { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => { }) } qr/parameter LOGOUT_DESTINATION is not a string/, 'config dies when LOGOUT_DESTINATION is passed a hashref';
-lives_ok  { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => '/' ) } 'config accepts LOGOUT_DESTINATION as a string';
-warning_like  { TestAppConfig->new->authen->config(LOGOUT_DESTINATION => '/', LOGOUT_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGOUT_DESTINATION ignored since we already have LOGOUT_RUNMODE/, "LOGOUT_DESTINATION ignored when LOGOUT_RUNMODE is configured";
+# test LOGOUT_URL
+throws_ok { TestAppConfig->new->authen->config(LOGOUT_URL => { }) } qr/parameter LOGOUT_URL is not a string/, 'config dies when LOGOUT_URL is passed a hashref';
+lives_ok  { TestAppConfig->new->authen->config(LOGOUT_URL => '/' ) } 'config accepts LOGOUT_URL as a string';
+warning_like  { TestAppConfig->new->authen->config(LOGOUT_URL => '/', LOGOUT_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter LOGOUT_URL ignored since we already have LOGOUT_RUNMODE/, "LOGOUT_URL ignored when LOGOUT_RUNMODE is configured";
 
 # test POST_LOGIN_RUNMODE
 throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_RUNMODE => { }) } qr/parameter POST_LOGIN_RUNMODE is not a string/, 'config dies when POST_LOGIN_RUNMODE is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_RUNMODE => 'runmode' ) } 'config accepts POST_LOGIN_RUNMODE as a string';
 
-# test POST_LOGIN_DESTINATION
-throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => { }) } qr/parameter POST_LOGIN_DESTINATION is not a string/, 'config dies when POST_LOGIN_DESTINATION is passed a hashref';
-lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => '/' ) } 'config accepts POST_LOGIN_DESTINATION as a string';
-warning_like  { TestAppConfig->new->authen->config(POST_LOGIN_DESTINATION => '/', POST_LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter POST_LOGIN_DESTINATION ignored since we already have POST_LOGIN_RUNMODE/, "POST_LOGIN_DESTINATION ignored when POST_LOGIN_RUNMODE is configured";
+# test POST_LOGIN_URL
+throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_URL => { }) } qr/parameter POST_LOGIN_URL is not a string/, 'config dies when POST_LOGIN_URL is passed a hashref';
+lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_URL => '/' ) } 'config accepts POST_LOGIN_URL as a string';
+warning_like  { TestAppConfig->new->authen->config(POST_LOGIN_URL => '/', POST_LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter POST_LOGIN_URL ignored since we already have POST_LOGIN_RUNMODE/, "POST_LOGIN_UR_URL ignored when POST_LOGIN_RUNMODE is configured";
 
 # test CREDENTIALS
 throws_ok { TestAppConfig->new->authen->config(CREDENTIALS => { }) } qr/parameter CREDENTIALS is not a string/, 'config dies when CREDENTIALS is passed a hashref';

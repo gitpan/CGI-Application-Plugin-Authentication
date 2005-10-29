@@ -20,6 +20,7 @@ Module::Build->new(
     build_requires => {
         'Test::More' => 0,
         'Test::Exception' => 0,
+        'Test::Warn' => 0,
     },
     create_makefile_pl => 'traditional',
     dist_author => 'Cees Hek <ceeshek@gmail.com>',
