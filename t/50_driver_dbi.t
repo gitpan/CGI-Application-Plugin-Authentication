@@ -4,7 +4,7 @@ use lib qw(t);
 eval "use DBD::SQLite";
 plan skip_all => "DBD::SQLite required for this test" if $@;
 
-plan tests => 68;
+plan tests => 74;
 
 use strict;
 use warnings;
@@ -338,8 +338,62 @@ DROP TABLE dailycode;
 
 
 
+$dbh->do(<<"");
+CREATE TABLE user (
+    name VARCHAR(20),
+    password VARCHAR(50)
+)
+
+$dbh->do(<<"");
+INSERT INTO user VALUES ('user1', '123');
+
+
+
+SKIP: {
+    eval "use DBI;";
+    skip "DBI not available", 6 if $@;
+
+    {
+
+        package TestAppDriverDBIDBH;
+
+        use base qw(TestAppDriver);
+
+        use Test::More;
+        eval "use CGI::Application::Plugin::DBH (qw/dbh dbh_config/);";
+        skip "CGI::Application::Plugin::DBH not available", 6 if $@;
+
+        sub cgiapp_init {
+            my $self = shift;
+            $self->dbh_config($dbh);
+
+            $self->authen->config(
+                DRIVER => [
+                    'DBI',
+                    TABLE       => 'user',
+                    CONSTRAINTS => { 'user.name' => '__CREDENTIAL_1__', 'user.password' => '__CREDENTIAL_2__' },
+                ],
+                STORE => 'Store::Dummy',
+                CREDENTIALS => [qw(authen_username authen_password)],
+            );
+
+        }
+
+    }
+
+    TestAppDriverDBIDBH->run_authen_tests(
+        [ 'authen_username', 'authen_password' ],
+        [ 'user1', '123' ],
+    );
+
+}
+
+$dbh->do(<<"");
+DROP TABLE user;
+
 
 undef $dbh;
 
 unlink $DBNAME if -e $DBNAME;
+
 

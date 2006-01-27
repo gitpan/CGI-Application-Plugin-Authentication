@@ -27,15 +27,15 @@ CGI::Application::Plugin::Authentication::Driver::Filter::lc - Lowercase Filter
 
 This simply lowercases the string and returns it
 
- my $filtered = $class->filter(undef, 'foobar'); # FOOBAR
+ my $filtered = $class->filter(undef, 'FOOBAR'); # foobar
 
 
 =head2 check ( undef, $string, $compare )
 
-This will lowercase the string and compare it against the comparison string
+This will lowercase C<$string> and compare it against C<$compare>
 and return true or false.
 
- if ($class->check(undef, 'foobar', 'FOOBAR')) {
+ if ($class->check(undef, 'FOOBAR', 'foobar')) {
      # they match
  }
 

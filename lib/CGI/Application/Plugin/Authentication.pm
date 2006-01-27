@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.07';
+$VERSION = '0.09';
 
 our %__CONFIG;
 
@@ -272,6 +272,24 @@ will take precedence.
 
   POST_LOGIN_URL => 'http://example.com/start.cgi'
 
+=item POST_LOGIN_CALLBACK
+
+A code reference that is executed after login processing but before POST_LOGIN_RUNMODE or
+redirecting to POST_LOGIN_URL. This is normally a method in your CGI::Application app
+and as such the CGI::Application object is passed as a parameter. 
+
+  POST_LOGIN_CALLBACK => \&update_login_date
+
+and later in your code:
+
+  sub update_login_date {
+    my $self = shift;
+
+    return unless($self->authen->is_authenticated);
+
+    ...
+  }
+
 
 =item LOGIN_RUNMODE
 
@@ -368,6 +386,24 @@ it will be treated as an IDLE_FOR time out.
           my $authen = shift;
           return ($authen->username eq 'root' && (time() - $authen->last_access) > 300) ? 1 : 0;
         }
+  }
+
+=item RENDER_LOGIN
+
+This value can be set to a subroutine reference that returns the HTML of a login
+form. The subroutine reference overrides the default call to login_box.
+The subroutine is normally a method in your CGI::Application app and as such the 
+CGI::Application object is passed as the first parameter. 
+
+  RENDER_LOGIN => \&login_form
+
+and later in your code:
+
+  sub login_form {
+    my $self = shift;
+
+    ...
+    return $html
   }
 
 
@@ -521,6 +557,20 @@ sub config {
 
             $config->{LOGIN_SESSION_TIMEOUT} = $options;
             delete $props->{LOGIN_SESSION_TIMEOUT};
+        }
+
+        # Check for POST_LOGIN_CALLBACK
+        if ( defined $props->{POST_LOGIN_CALLBACK} ) {
+            croak "authen config error:  parameter POST_LOGIN_CALLBACK is not a coderef"
+              unless( ref $props->{POST_LOGIN_CALLBACK} eq 'CODE' );
+            $config->{POST_LOGIN_CALLBACK} = delete $props->{POST_LOGIN_CALLBACK};
+        }
+
+        # Check for RENDER_LOGIN
+        if ( defined $props->{RENDER_LOGIN} ) {
+            croak "authen config error:  parameter RENDER_LOGIN is not a coderef"
+              unless( ref $props->{RENDER_LOGIN} eq 'CODE' );
+            $config->{RENDER_LOGIN} = delete $props->{RENDER_LOGIN};
         }
 
         # If there are still entries left in $props then they are invalid
@@ -935,19 +985,30 @@ sub store {
 =head2 initialize
 
 This does most of the heavy lifting for the Authentication plugin.  It will
-check to see if the user is currently attempting to login by looking for
-the credential form fields in the query object.  It will load the required
-driver objects and authenticate the user.  It is OK to call this method multiple
-times as it checks to see if it has already been executed and will just return
+check to see if the user is currently attempting to login by looking for the
+credential form fields in the query object.  It will load the required driver
+objects and authenticate the user.  It is OK to call this method multiple times
+as it checks to see if it has already been executed and will just return
 without doing anything if called multiple times.  This allows us to call
-initialize as late as possible in the request so that no unnecesary work is done.
+initialize as late as possible in the request so that no unnecesary work is
+done.
+
+The user will be logged out by calling the C<logout()> method if the login
+session has been idle for too long, if it has been too long since the last
+login, or if the login has timed out.  If you need to know if a user was logged
+out because of a time out, you can call the C<is_login_timeout> method.
+
+If all goes well, a true value will be returned, although it is usually not
+necessary to check.
 
 =cut
 
 sub initialize {
     my $self = shift;
-    return if $self->{initialized};
+    return 1 if $self->{initialized};
 
+    # It would seem to make more sense to do this at the /end/ of the routine
+    # but that causes an infinite loop. 
     $self->{initialized} = 1;
 
     my $config = $self->_config;
@@ -979,6 +1040,9 @@ sub initialize {
             my $attempts = $store->fetch('login_attempts') || 0; 
             $store->save( login_attempts => $attempts + 1 );
         }
+
+        $config->{POST_LOGIN_CALLBACK}->($self->_cgiapp) 
+          if($config->{POST_LOGIN_CALLBACK});
     }
 
     if ($self->username && $config->{LOGIN_SESSION_TIMEOUT} && !$self->{is_new_login}) {
@@ -996,8 +1060,8 @@ sub initialize {
             $self->{is_login_timeout} = 1;
             $self->logout;
         }
-
     }
+    return 1;
 
 }
 
@@ -1021,12 +1085,21 @@ sub login_box {
     my $username    = $credentials->[0];
     my $password    = $credentials->[1];
     my $messages    = '';
+
     if ( my $attempts = $self->login_attempts ) {
         $messages .= qq{<li class="warning">Invalid username or password<br />(login attempt $attempts)</li>};
     } else {
         $messages .= "<li>Please enter your username and password in the fields below.</li>";
     }
-    return <<END;
+
+    my $html        = 
+        CGI::start_html(
+            -title  => 'Login',
+            -style  => { -code => $self->login_styles },
+            -onload => "document.loginform.${username}.focus()",
+        );
+
+    $html .= <<END;
 <div class="login">
   <div class="title">
     <h4>Login</h4>
@@ -1049,6 +1122,9 @@ sub login_box {
   </div>
 </div>
 END
+    $html .= CGI::end_html();
+
+    return $html;
 }
 
 =head2 login_styles
@@ -1270,26 +1346,26 @@ sub prerun_callback {
 =head2 authen_login_runmode
 
 This runmode is provided if you do not want to create your
-own login runmode.  It will display a simple login form for the user.
+own login runmode.  It will display a simple login form for the user, which
+can be replaced by assigning RENDER_LOGIN a coderef that returns the HTML.
 
 =cut
 
 sub authen_login_runmode {
-    my $self = shift;
-    my $q    = $self->query;
+    my $self   = shift;
+    my $authen = $self->authen;
 
-    my $credentials = $self->authen->credentials;
+    my $credentials = $authen->credentials;
     my $username    = $credentials->[0];
     my $password    = $credentials->[1];
-    my $html        = join( "\n",
-        CGI::start_html(
-            -title  => 'Login',
-            -style  => { -code => $self->authen->login_styles },
-            -onload => "document.loginform.${username}.focus()",
-        ),
-        $self->authen->login_box,
-        CGI::end_html(),
-    );
+
+    my $html;
+    if ( my $sub = $authen->_config->{RENDER_LOGIN} ) {
+        $html = $sub->($self);
+    }
+    else {
+        $html = $authen->login_box;
+    }
 
     return $html;
 }

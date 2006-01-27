@@ -9,13 +9,14 @@ Module::Build->new(
         'Class::ISA' => 0,
         'Attribute::Handlers' => 0,
         'UNIVERSAL::require' => 0,
-    },
-    recommends => {
         'CGI::Cookie' => 0,
         'MIME::Base64' => 0,
-        'Digest::MD5' => 0,
         'Digest::SHA1' => 0,
+    },
+    recommends => {
+        'Digest::MD5' => 0,
         'CGI::Application::Plugin::Session' => 0,
+        'Apache::Htpasswd' => '1.6.1',
     },
     build_requires => {
         'Test::More' => 0,

@@ -1,5 +1,33 @@
 Revision history for Perl extension CGI::Application::Plugin::Authentication.
 
+0.09  Thu Jan 26 20:56:29 EST 2006
+
+    API Changes
+    - Added option to provide your own HTML for the login box through a callback
+      (Shawn Sorichetti)
+    - Added POST_LOGIN_RUNMODE callback (Shawn Sorichetti)
+
+0.08  Wed Nov 23 20:20:24 EST 2005
+
+    API Changes
+    - Removed ability to configure the DBI driver with a DSN and
+      username/password.  CGI::Application::Plugin::DBH should be used for
+      that instead (Mark Stosberg) 
+    - DBI driver defaults to $self->dbh() if DBH not provided (Mark Stosberg)
+
+    Bug Fixes
+    - Made MIME::Base64, Digest::SHA1 and CGI::Cookie mandatory requirements
+      and load them at compile time instead of runtime in the Cookie store.
+      (fixes problem reported by Richard Jones)
+
+    Other updates
+    - Added Driver that can authenticate against htpasswd files
+    - Fixed typo in examples/sample.cgi
+    - Fixed typo in lc filter example (Mark Stosberg)
+    - Updated docs for initialize(), and made it return true value
+      (Mark Stosberg)
+
+
 0.07  Sat Oct 29 17:08:48 EDT 2005
 
     API Changes

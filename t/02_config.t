@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use Test::More tests => 61;
+use Test::More tests => 67;
 use Test::Exception;
 use Test::Warn;
 use Scalar::Util;
@@ -83,6 +83,16 @@ lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_RUNMODE => 'runmode' )
 throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_URL => { }) } qr/parameter POST_LOGIN_URL is not a string/, 'config dies when POST_LOGIN_URL is passed a hashref';
 lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_URL => '/' ) } 'config accepts POST_LOGIN_URL as a string';
 warning_like  { TestAppConfig->new->authen->config(POST_LOGIN_URL => '/', POST_LOGIN_RUNMODE => 'runmode' ) } qr/authen config warning:  parameter POST_LOGIN_URL ignored since we already have POST_LOGIN_RUNMODE/, "POST_LOGIN_UR_URL ignored when POST_LOGIN_RUNMODE is configured";
+
+# test POST_LOGIN_CALLBACK
+throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_CALLBACK => { }) } qr/parameter POST_LOGIN_CALLBACK is not a coderef/, 'config dies when POST_LOGIN_CALLBACK is passed a hashref';
+throws_ok { TestAppConfig->new->authen->config(POST_LOGIN_CALLBACK => ' ') } qr/parameter POST_LOGIN_CALLBACK is not a coderef/, 'config dies when POST_LOGIN_CALLBACK is passed a string';
+lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_CALLBACK => sub { } ) } 'config accepts POST_LOGIN_CALLBACK as a coderef';
+
+# test RENDER_LOGIN
+throws_ok { TestAppConfig->new->authen->config(RENDER_LOGIN => { }) } qr/parameter RENDER_LOGIN is not a coderef/, 'config dies when RENDER_LOGIN is passed a hashref';
+throws_ok { TestAppConfig->new->authen->config(RENDER_LOGIN => ' ') } qr/parameter RENDER_LOGIN is not a coderef/, 'config dies when RENDER_LOGIN is passed a string';
+lives_ok  { TestAppConfig->new->authen->config(RENDER_LOGIN => sub { } ) } 'config accepts RENDER_LOGIN as a coderef';
 
 # test CREDENTIALS
 throws_ok { TestAppConfig->new->authen->config(CREDENTIALS => { }) } qr/parameter CREDENTIALS is not a string/, 'config dies when CREDENTIALS is passed a hashref';

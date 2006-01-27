@@ -27,8 +27,8 @@ use warnings;
         STORE          => 'Cookie',
         LOGOUT_RUNMODE => 'one',
     );
-    MyLogin->authen->config(%config);
-    MyLogin->authen->protected_runmodes('two');
+    SampleLogin->authen->config(%config);
+    SampleLogin->authen->protected_runmodes('two');
 
     sub setup {
         my $self = shift;

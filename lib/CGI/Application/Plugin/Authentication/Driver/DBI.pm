@@ -36,6 +36,11 @@ database handle, or provide the parameters necesary to connect to the database.
 When describing the database structure, you need to specify some or all of the
 following parameters: TABLE(S), JOIN_ON, COLUMNS and CONSTRAINTS.
 
+=head2 DBH
+
+The DBI database handle to use. Defaults to C<$self->dbh()>, which is provided and configured
+through L<CGI::Application::Plugin::DBH|CGI::Application::Plugin::DBH>
+
 =head2 TABLE(S)  (required)
 
 Provide either a single table name, or an array of table names.  You can give the
@@ -164,10 +169,7 @@ docs.
  #  two separate tables.
  __PACKAGE__->authen->config(
      DRIVER => [ 'DBI',
-         DSN         => 'dbi:Pg:dbname=test',
-         DB_USER     => 'postges',
-         DB_PASSWORD => 'secret',
-         DBI_OPTIONS => { RaiseError => 1, AutoCommit => 0 },
+         # the handle comes from $self->dbh, via the "DBH" plugin. 
          TABLES      => ['user', 'domain'],
          JOIN_ON     => 'user.domainid = domain.id',
          CONSTRAINTS => {
@@ -186,7 +188,7 @@ docs.
  #  properly, we need to pull out the password, and check it locally
  __PACKAGE__->authen->config(
      DRIVER => [ 'DBI',
-         DBH         => $self->dbh,
+         DBH         => $dbh,   # provide your own DBI handle
          TABLE       => 'user',
          CONSTRAINTS => { 'user.name'      => '__CREDENTIAL_1__' }
          COLUMNS     => { 'crypt:password' => '__CREDENTIAL_2__' },
@@ -199,12 +201,11 @@ docs.
  #  Here we only check users where the 'active' column is true
  __PACKAGE__->authen->config(
      DRIVER => [ 'DBI',
-         DBH         => $self->dbh,
          TABLE       => 'user',
          CONSTRAINTS => {
              'user.name'     => '__CREDENTIAL_1__',
              'user.password' => '__CREDENTIAL_2__',
-             'active'        => 't'
+             'user.active'   => 't'
          },
      ],
  );
@@ -217,16 +218,15 @@ docs.
  #  an MD5 hash hex format and stored in upper case).
  __PACKAGE__->authen->config(
      DRIVER => [ 'DBI',
-         DBH         => $self->dbh,
          TABLES      => ['user U', 'dailycode D'],
          JOIN_ON     => 'U.userid = D.userid',
          CONSTRAINTS => {
-             'user.name'         => '__CREDENTIAL_1__',
+             'U.name'            => '__CREDENTIAL_1__',
              'uc:md5_hex:D.code' => '__CREDENTIAL_3__',
              'D.date'            => 'now'
          },
          COLUMNS     => {
-             'crypt:password' => '__CREDENTIAL_2__'
+             'crypt:U.password' => '__CREDENTIAL_2__'
          },
      ],
  );
@@ -251,17 +251,16 @@ sub verify_credentials {
     die "The DBI driver requires a hash of options" if @_options % 2;
     my %options = @_options;
 
-    # Get a database handle either one that is given to us, or connect using the
-    # information given in the configuration
+    # Get a database handle - either one that is given to us, or see if there
+    # is a ->dbh method in the CGIApp module (This is provided by the
+    # CGI::Application::Plugin::DBH module, so use it if it is there).
     my $dbh;
     if ( $options{DBH} ) {
         $dbh = $options{DBH};
-    } elsif ( $options{DSN} ) {
-        no warnings qw(uninitialized);
-        $dbh = DBI->connect( $options{DSN}, $options{DB_USER}, $options{DB_PASSWORD}, $options{DBI_OPTIONS} )
-          or die $DBI::errstr;
+    } elsif ( $self->authen->_cgiapp->can('dbh') ) {
+        $dbh = $self->authen->_cgiapp->dbh;
     } else {
-        die "No DBH or DSN parameter passed to the DBI Driver";
+        die "No DBH handle passed to the DBI Driver, and no dbh() method detected";
     }
 
     # Grab the database table names (TABLE and TABLES are synonymous)

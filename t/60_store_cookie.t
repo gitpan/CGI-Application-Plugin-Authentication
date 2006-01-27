@@ -6,8 +6,6 @@ use lib qw(t);
 use CGI::Util;
 
 use Test::More;
-eval "use Digest::SHA1";
-plan skip_all => "Digest::SHA1 required for this test" if $@;
 
 plan tests => 14;
 

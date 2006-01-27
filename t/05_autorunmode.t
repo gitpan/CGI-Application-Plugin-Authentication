@@ -19,7 +19,7 @@ use CGI ();
 
     __PACKAGE__->authen->config(
         DRIVER => [ 'Generic', { user1 => '123' } ],
-        STORE  => [ 'Cookie', SECRET => 'foobar' ],
+        STORE  => [ 'Store::Dummy' ],
     );
 
     sub setup {

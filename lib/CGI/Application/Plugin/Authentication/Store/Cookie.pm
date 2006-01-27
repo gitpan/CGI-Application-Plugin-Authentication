@@ -4,7 +4,9 @@ use strict;
 use warnings;
 
 use base qw(CGI::Application::Plugin::Authentication::Store);
-use UNIVERSAL::require;
+use MIME::Base64 ();
+use Digest::SHA1 ();
+use CGI::Cookie  ();
 
 # CONFIGURABLE OPTIONS
 #
@@ -152,15 +154,6 @@ This method will check for an existing cookie, and decode the contents for later
 
 sub initialize {
     my $self = shift;
-
-    # Check for CGI::Cookie
-    die "CGI::Cookie is required to use the Cookie store" unless CGI::Cookie->require;
-
-    # Check for MIME::Base64
-    die "MIME::Base64 is required to use the Cookie store" unless MIME::Base64->require;
-
-    # Check for Digest::SHA1
-    die "Digest::SHA1 is required to use the Cookie store" unless Digest::SHA1->require;
 
     my @options = $self->options;
     die "Invalid Store Configuration for the Cookie store - options section must contain a hash of values" if @options % 2;
