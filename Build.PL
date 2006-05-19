@@ -17,6 +17,7 @@ Module::Build->new(
         'Digest::MD5' => 0,
         'CGI::Application::Plugin::Session' => 0,
         'Apache::Htpasswd' => '1.6.1',
+        'Color::Calc' => '0.12',
     },
     build_requires => {
         'Test::More' => 0,

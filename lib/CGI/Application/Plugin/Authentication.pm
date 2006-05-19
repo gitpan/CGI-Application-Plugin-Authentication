@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 our %__CONFIG;
 
@@ -81,19 +81,22 @@ the authentication information across requests).
 
 =head2 Choosing a Driver
 
-There are three drivers that are included with the distribution, and this should actually
-be enough to cover everyone's needs.  However, there will be more drivers available on CPAN to
-make certain authentication tasks much easier.  Since many people will be authenticating
-against a database, a DBI driver is included to cover those needs.  If you need to
-authenticate against a different source, you can use the Generic driver which will
-accept either a hash of username/password pairs, or an array of arrays of credentials,
-or a subroutine reference that can verify the credentials.  So through the Generic
-driver you should be able to write your own verification system.  The third Driver is the
-Dummy driver, which blindly accepts any credentials.  See the
-L<CGI::Application::Plugin::Authentication::Driver::Generic>, 
-L<CGI::Application::Plugin::Authentication::Driver::DBI> and, 
-L<CGI::Application::Plugin::Authentication::Driver::Dummy> docs for more information
-on how to use these drivers.
+There are three drivers that are included with the distribution.  Also, there
+is built in support for all of the Authen::Simple modules (search CPAN for
+Authen::Simple for more information).  This should be enough to cover
+everyone's needs.  
+
+If you need to authenticate against a source that is not provided, you can use
+the Generic driver which will accept either a hash of username/password pairs,
+or an array of arrays of credentials, or a subroutine reference that can verify
+the credentials.  So through the Generic driver you should be able to write
+your own verification system.  There is also a Dummy driver, which blindly
+accepts any credentials (useful for testing).  See the
+L<CGI::Application::Plugin::Authentication::Driver::Generic>,
+L<CGI::Application::Plugin::Authentication::Driver::DBI> and,
+L<CGI::Application::Plugin::Authentication::Driver::Dummy> docs for more
+information on how to use these drivers.  And see the L<Authen::Simple> suite
+of modules for information on those drivers.
 
 =head2 Choosing a Store
 
@@ -229,7 +232,14 @@ a valid response is received.
 
      DRIVER => [
          [ 'Generic', { user1 => '123' } ],
-         [ 'LDAP', binddn => '...', host => 'localhost', ... ]
+         [ 'Generic', sub { my ($u, $p) = @_; is_prime($p) ? 1 : 0 } ]
+     ],
+
+  - or -
+
+     DRIVER => [ 'Authen::Simple::LDAP',
+         host   => 'ldap.company.com',
+         basedn => 'ou=People,dc=company,dc=net'
      ],
 
 
@@ -329,7 +339,8 @@ because this plugin will automatically look for query parameters that match thes
 every request to see if a user is trying to log in.  So if you use the same parameter names
 on a user management page, you may inadvertantly perform a login when that was not intended.
 Most of the Driver modules will return the first CREDENTIAL as the username, so make sure
-that you list the username field first.
+that you list the username field first.  This option can be ignored if you use the built in
+login box
 
   CREDENTIALS => 'authen_password'
 
@@ -406,6 +417,121 @@ and later in your code:
     return $html
   }
 
+=item LOGIN_FORM
+
+You can set this option to customize the login form that is created when a user
+needs to be authenticated.  If you wish to replace the entire login form with a
+completely custom version, then just set LOGIN_RUNMODE to point to your custom
+runmode.
+
+All of the parameters listed below are optional, and a reasonable default will
+be used if left blank:
+
+=over 4
+
+=item TITLE (default: Sign In)
+
+the heading at the top of the login box 
+
+=item USERNAME_LABEL (default: User Name)
+
+the label for the user name input
+
+=item PASSWORD_LABEL (default: Password)
+
+the label for the password input
+
+=item SUBMIT_LABEL (default: Sign In)
+
+the label for the submit button
+
+=item COMMENT (default: Please enter your username and password in the fields below.)
+
+a message provided on the first login attempt
+
+=item REMEMBERUSER_OPTION (default: 1)
+
+provide a checkbox to offer to remember the users name in a cookie so that
+their user name will be pre-filled the next time they log in
+
+=item REMEMBERUSER_LABEL (default: Remember User Name)
+
+the label for the remember user name checkbox
+
+=item REMEMBERUSER_COOKIENAME (default: CAPAUTHTOKEN)
+
+the name of the cookie where the user name will be saved
+
+=item REGISTER_URL (default: <none>)
+
+the url for the register new account link
+
+=item REGISTER_LABEL (default: Register Now!)
+
+the label for the register new account link
+
+=item FORGOTPASSWORD_URL (default: <none>)
+
+the url for the forgot password link
+
+=item FORGOTPASSWORD_LABEL (default: Forgot Password?)
+
+the label for the forgot password link
+
+=item INVALIDPASSWORD_MESSAGE (default: Invalid username or password<br />(login attempt %d)
+
+a message given when a login failed
+
+=item INCLUDE_STYLESHEET (default: 1)
+
+use this to disable the built in stylesheet for the login box so you can provide your own custom styles
+
+=item FOCUS_FORM_ONLOAD (default: 1)
+
+use this to automatically focus the login form when the page loads so a user can start typing right away.
+
+=item BASE_COLOUR (default: #445588)
+
+This is the base colour that will be used in the included login box.  All other
+colours are automatically calculated based on this colour (unless you hardcode
+the colour values).  In order to calculate other colours, you will need the
+Color::Calc module.  If you do not have the Color::Calc module, then you will
+need to use fixed values for all of the colour options.  All colour values
+besides the BASE_COLOUR can be simple percentage values (including the % sign).
+For example if you set the LIGHTER_COLOUR option to 80%, then the calculated
+colour will be 80% lighter than the BASE_COLOUR.
+
+=item LIGHT_COLOUR (default: 50% or #a2aac4)
+
+A colour that is lighter than the base colour.
+
+=item LIGHTER_COLOUR (default: 75% or #d0d5e1)
+
+A colour that is another step lighter than the light colour.
+
+=item DARK_COLOUR (default: 30% or #303c5f)
+
+A colour that is darker than the base colour.
+
+=item DARKER_COLOUR (default: 60% or #1b2236)
+
+A colour that is another step darker than the dark colour.
+
+=item GREY_COLOUR (default: #565656)
+
+A grey colour that is calculated by desaturating the base colour.
+
+
+=back
+
+  LOGIN_FORM => {
+    TITLE              => 'Login',
+    SUBMIT_LABEL       => 'Login',
+    REMEMBERUSER_LABEL => 1,
+    BASE_COLOUR        => '#0099FF',
+    LIGHTER_COLOUR     => '#AAFFFF',
+    DARK_COLOUR        => '50%',
+  }
 
 =back
 
@@ -571,6 +697,13 @@ sub config {
             croak "authen config error:  parameter RENDER_LOGIN is not a coderef"
               unless( ref $props->{RENDER_LOGIN} eq 'CODE' );
             $config->{RENDER_LOGIN} = delete $props->{RENDER_LOGIN};
+        }
+
+        # Check for LOGIN_FORM
+        if ( defined $props->{LOGIN_FORM} ) {
+            croak "authen config error:  parameter LOGIN_FORM is not a hashref"
+              unless( ref $props->{LOGIN_FORM} eq 'HASH' );
+            $config->{LOGIN_FORM} = delete $props->{LOGIN_FORM};
         }
 
         # If there are still entries left in $props then they are invalid
@@ -925,6 +1058,11 @@ sub drivers {
 
         foreach my $driver_config (@$driver_configs) {
             my ($drivername, @params) = @$driver_config;
+            # add support for Authen::Simple modules
+            if (index($drivername, 'Authen::Simple') == 0) {
+                unshift @params, $drivername;
+                $drivername = 'Authen::Simple';
+            }
             # Load the the class for this driver
             my $driver_class = _find_deligate_class(
                 'CGI::Application::Plugin::Authentication::Driver::' . $drivername,
@@ -1032,6 +1170,16 @@ sub initialize {
                 my $now = time();
                 $store->save( username => $username,  login_attempts => 0, last_login => $now, last_access => $now );
                 $self->{is_new_login} = 1;
+                # See if we are remembering the username for this user
+                my $login_config = $config->{LOGIN_FORM} || {};
+                if ($login_config->{REMEMBERUSER_OPTION} && $query->param('authen_rememberuser')) {
+                    my $cookie = $query->cookie(
+                        -name   => $login_config->{REMEMBERUSER_COOKIENAME} || 'CAPAUTHTOKEN',
+                        -value  => $username,
+                        -expiry => '10y',
+                    );
+                    $self->_cgiapp->header_add(-cookie => [$cookie]);
+                }
                 last;
             }
         }
@@ -1084,161 +1232,286 @@ sub login_box {
     my $action      = $query->url( -absolute => 1 );
     my $username    = $credentials->[0];
     my $password    = $credentials->[1];
-    my $messages    = '';
+    my $login_form  = $self->_config->{LOGIN_FORM} || {};
+    my %options = (
+        TITLE                   => 'Sign In',
+        USERNAME_LABEL          => 'User Name',
+        PASSWORD_LABEL          => 'Password',
+        SUBMIT_LABEL            => 'Sign In',
+        COMMENT                 => 'Please enter your username and password in the fields below.',
+        REMEMBERUSER_OPTION     => 1,
+        REMEMBERUSER_LABEL      => 'Remember User Name',
+        REMEMBERUSER_COOKIENAME => 'CAPAUTHTOKEN',
+        REGISTER_URL            => '',
+        REGISTER_LABEL          => 'Register Now!',
+        FORGOTPASSWORD_URL      => '',
+        FORGOTPASSWORD_LABEL    => 'Forgot Password?',
+        INVALIDPASSWORD_MESSAGE => 'Invalid username or password<br />(login attempt %d)',
+        INCLUDE_STYLESHEET      => 1,
+        %$login_form,
+    );
 
+    my $messages = '';
     if ( my $attempts = $self->login_attempts ) {
-        $messages .= qq{<li class="warning">Invalid username or password<br />(login attempt $attempts)</li>};
-    } else {
-        $messages .= "<li>Please enter your username and password in the fields below.</li>";
+        $messages .= '<li class="warning">' . sprintf($options{INVALIDPASSWORD_MESSAGE}, $attempts) . '</li>';
+    } elsif ($options{COMMENT}) {
+        $messages .= "<li>$options{COMMENT}</li>";
     }
 
-    my $html        = 
-        CGI::start_html(
-            -title  => 'Login',
-            -style  => { -code => $self->login_styles },
-            -onload => "document.loginform.${username}.focus()",
-        );
+    my $tabindex = 3;
+    my ($rememberuser, $username_value, $register, $forgotpassword, $javascript, $style) = ('','','','','','');
+    if ($options{FOCUS_FORM_ONLOAD}) {
+        $javascript .= "document.loginform.${username}.focus();\n";
+    }
+    if ($options{REMEMBERUSER_OPTION}) {
+        $rememberuser = qq[<input id="authen_rememberuserfield" tabindex="$tabindex" type="checkbox" name="authen_rememberuser" value="1" />$options{REMEMBERUSER_LABEL}<br />];
+        $tabindex++;
+        my $query = $self->_cgiapp->query;
+        $username_value = $query->param($username) || $query->cookie($options{REMEMBERUSER_COOKIENAME}) || '';
+        $javascript .= "document.loginform.${username}.select();\n" if $username_value;
+    }
+    my $submit_tabindex = $tabindex++;
+    if ($options{REGISTER_URL}) {
+        $register = qq[<a href="$options{REGISTER_URL}" id="authen_registerlink" tabindex="$tabindex">$options{REGISTER_LABEL}</a>];
+        $tabindex++;
+    }
+    if ($options{FORGOTPASSWORD_URL}) {
+        $forgotpassword = qq[<a href="$options{FORGOTPASSWORD_URL}" id="authen_forgotpasswordlink" tabindex="$tabindex">$options{FORGOTPASSWORD_LABEL}</a>];
+        $tabindex++;
+    }
+    if ($options{INCLUDE_STYLESHEET}) {
+        my $login_styles = $self->login_styles;
+        $style = <<EOS;
+<style type="text/css">
+<!--/* <![CDATA[ */
+$login_styles
+/* ]]> */-->
+</style>
+EOS
+    }
+    if ($javascript) {
+        $javascript = qq[<script type="text/javascript" language="JavaScript">$javascript</script>];
+    }
 
-    $html .= <<END;
-<div class="login">
-  <div class="title">
-    <h4>Login</h4>
-  </div>
-
-  <div class="content">
-    <form name="loginform" method="post" action="${action}">
-      <ul class="message">${messages}</ul>
+    my $html .= <<END;
+$style
+<form name="loginform" method="post" action="${action}">
+  <div class="login">
+    <div class="login_header">
+      $options{TITLE}
+    </div>
+    <div class="login_content">
+      <ul class="message">
+${messages}
+      </ul>
       <fieldset>
-        <label for="${username}">Username</label><input id="authen_loginfield" tabindex="1" type="text" name="${username}" size="30" value="" />
-        <label for="${password}">Password</label><input id="authen_passwordfield" tabindex="2" type="password" name="${password}" size="30" />
-        <div class="buttons">
-          <input type="hidden" name="destination" value="${destination}" />
-          <input type="hidden" name="rm" value="${runmode}" />
-          <input tabindex="3" type="submit" name="login" value="Log in" class="button" />
-          <input tabindex="4" type="reset" name="resetlogin" value="Reset" class="button" />
-        </div>
+        <label for="${username}">$options{USERNAME_LABEL}</label>
+        <input id="authen_loginfield" tabindex="1" type="text" name="${username}" size="20" value="$username_value" /><br />
+        <label for="${password}">$options{PASSWORD_LABEL}</label>
+        <input id="authen_passwordfield" tabindex="2" type="password" name="${password}" size="20" /><br />
+        ${rememberuser}
       </fieldset>
-    </form>
+    </div>
+    <div class="login_footer">
+      <div class="buttons">
+        <input id="authen_loginbutton" tabindex="${submit_tabindex}" type="submit" name="authen_loginbutton" value="$options{SUBMIT_LABEL}" class="button" />
+        ${register}
+        ${forgotpassword}
+      </div>
+    </div>
   </div>
-</div>
+  <input type="hidden" name="destination" value="${destination}" />
+  <input type="hidden" name="rm" value="${runmode}" />
+</form>
+$javascript
 END
-    $html .= CGI::end_html();
 
     return $html;
 }
 
 =head2 login_styles
 
-This method returns a stylesheet that can be used for the login box that
-the plugin provides.  Currently the login box automatically includes these
-default styles in the page.
+This method returns a stylesheet that can be used for the login box that the
+plugin provides.  The login box automatically includes these default styles in
+the page unless you set the LOGIN_FORM => INCLUDE_STYLESHEET option to 0.  The
+colours used in the returned styles can be customized by providing colour
+options to LOGIN_FORM configuration parameter.
 
 =cut
 
 sub login_styles {
+    my $self = shift;
+    my $login_form  = $self->_config->{LOGIN_FORM} || {};
+    my %colour = ();
+
+    $colour{base}    = $login_form->{BASE_COLOUR} || '#445588';
+    $colour{lighter} = $login_form->{LIGHTER_COLOUR} if $login_form->{LIGHTER_COLOUR};
+    $colour{light}   = $login_form->{LIGHT_COLOUR} if $login_form->{LIGHT_COLOUR};
+    $colour{dark}    = $login_form->{DARK_COLOUR} if $login_form->{DARK_COLOUR};
+    $colour{darker}  = $login_form->{DARKER_COLOUR} if $login_form->{DARKER_COLOUR};
+    $colour{grey}    = $login_form->{GREY_COLOUR} if $login_form->{GREY_COLOUR};
+    
+    if ( grep { ! defined $colour{$_} || index($colour{$_}, '%') >= 0 } qw(lighter light dark darker) ) {
+        eval { require Color::Calc };
+        if ($@) {
+            warn "Color::Calc is required when specifying a custom BASE_COLOUR, and leaving LIGHTER_COLOUR, LIGHT_COLOUR, DARK_COLOUR or DARKER_COLOUR blank or when providing percentage based colour";
+            $colour{base}    = '#445588';
+            $colour{lighter} = '#d0d5e1';
+            $colour{light}   = '#a2aac4';
+            $colour{dark}    = '#303c5f';
+            $colour{darker}  = '#1b2236';
+            $colour{grey}    = '#565656';
+        } else {
+            $colour{lighter} = !$colour{lighter}             ? Color::Calc::light_html($colour{base}, 0.75)
+                             : $colour{lighter} =~ m#(\d+)%# ? Color::Calc::light_html($colour{base}, $1 / 100)
+                             : $colour{lighter};
+            $colour{light}   = !$colour{light}               ? Color::Calc::light_html($colour{base}, 0.5)
+                             : $colour{light} =~ m#(\d+)%#   ? Color::Calc::light_html($colour{base}, $1 / 100)
+                             : $colour{light};
+            $colour{dark}    = !$colour{dark}                ? Color::Calc::dark_html($colour{base}, 0.3)
+                             : $colour{dark} =~ m#(\d+)%#    ? Color::Calc::dark_html($colour{base}, $1 / 100)
+                             : $colour{dark};
+            $colour{darker}  = !$colour{darker}              ? Color::Calc::dark_html($colour{base}, 0.6)
+                             : $colour{darker} =~ m#(\d+)%#  ? Color::Calc::dark_html($colour{base}, $1 / 100)
+                             : $colour{darker};
+            $colour{grey}    ||= Color::Calc::bw_html($colour{base});
+        }
+    }
+    $colour{grey} ||= '#565656';
     return <<END;
-body {
-    font-family: arial, helvetica, sans-serif;
-    background-color: #ddd;
-}
-
-div, fieldset {
-    margin: 0;
-    padding: 0;
-    border: none;
-}
-
 div.login {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: 25em;
-    height: 50%;
-    margin: auto;
-    padding: 2em;
-    font-size: 80%;
-    font-weight: bold;
+  width: 25em;
+  margin: auto;
+  padding: 3px;
+  font-weight: bold;
+  border: 2px solid $colour{base};
+  color: $colour{dark};
+  font-family: sans-serif;
 }
-
-div.login .title {
-    background: green;
-    -moz-border-radius: 12px 12px 0 0;
-    border-radius: 12px 12px 0 0;
-    border-top: 1px solid black;
-    border-left: 1px solid black;
-    border-right: 1px solid black;
-    text-align: center;
+div.login div {
+  margin: 0;
+  padding: 0;
+  border: none;
 }
-
-div.login .content {
-    background: white;
-    padding: 0.8em;
-    -moz-border-radius: 0 0 12px 12px;
-    border-radius: 0 0 12px 12px;
-    border-bottom: 1px solid black;
-    border-left: 1px solid black;
-    border-right: 1px solid black;
+div.login .login_header {
+  background: $colour{base};
+  border-bottom: 1px solid $colour{darker};
+  height: 1.5em;
+  padding: 0.45em;
+  text-align: left;
+  color: #fff;
+  font-size: 100%;
+  font-weight: bold;
 }
-
-div.login h4 {
-    margin: 0;
-    padding: .3em .6em;
-    color: #fff;
-    font-size: 150%;
+div.login .login_content {
+  background: $colour{lighter};
+  padding: 0.8em;
+  border-top: 1px solid white;
+  border-bottom: 1px solid $colour{grey};
+  font-size: 80%;
 }
-
+div.login .login_footer {
+  background: $colour{light};
+  border-top: 1px solid white;
+  border-bottom: 1px solid white;
+  text-align: left;
+  padding: 0;
+  margin: 0;
+  min-height: 2.8em;
+}
+div.login fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  width: 100%;
+}
 div.login label {
-    display: block;
-    padding: 1em 0 0 0;
+  clear: left;
+  float: left;
+  padding: 0.6em 1em 0.6em 0;
+  width: 8em;
+  text-align: right;
 }
-
-div.login div.buttons {
-    display: block;
-    margin: 8px 4px;
-    width: 100%;
-    text-align: center;
-}
-
-#authen_loginfield:focus {
-    background-color: #ffc;
-    color: #000;
-}
-
-#authen_passwordfield:focus {
-    background-color: #ffc;
-    color: #000;
-}
-
 /* image courtesy of http://www.famfamfam.com/lab/icons/silk/  */
 #authen_loginfield {
-    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAG5SURBVHjaYvz//z8DJQAggFiIVfh0twHn9w8KD9+/ZBT+9/cfExfvwwc87GxWAAFEtAFf3yl++/9XikHXL56BkYmJ4dKmcoUPT99PBQggRmK8ALT9v4BUBQMLrxxQMztY7N+PjwyXtk76BxBATMRoFjGewsDCx8jw9Oxyht9vboIxCDAxs/wCCCC8LoBrZv/A8PPpVoZ/39gZ7p57xcDLJ8Xw5tkdBrO8DYwAAcRElOYXaxn+/73DwC4vzyAmzsLw58kJsGaQOoAAYiJK868nDGwSXgxvjp1n+Hz7HoNawRFGmFqAAMIw4MBEDaI1gwBAAKEYsKtL/b9x2HSiNYMAQACBA3FmiqKCohrbfQ2nLobn97Yz6Br/JEozCAAEEDgh/eb6d98yYhEDBxsnw5VNZxnOffjLIKltw/D52B6GH89fMVjUnGbEFdgAAQRPiexMzAyfDk9gMJbmYbh17irDueMrGbjExBi8Oy8z4ksnAAEENuDY1S8MjjsnMSgaezJ8Z2Bm+P95PgPX6ycENYMAQACBwyDSUeQ/GzB926kLMEjwsjOwifKvcy05EkxMHgEIIEZKszNAgAEA+j3MEVmacXUAAAAASUVORK5CYII=') no-repeat 0 1px;
-    padding-left: 18px;
+  background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAG5SURBVHjaYvz//z8DJQAggFiIVfh0twHn9w8KD9+/ZBT+9/cfExfvwwc87GxWAAFEtAFf3yl++/9XikHXL56BkYmJ4dKmcoUPT99PBQggRmK8ALT9v4BUBQMLrxxQMztY7N+PjwyXtk76BxBATMRoFjGewsDCx8jw9Oxyht9vboIxCDAxs/wCCCC8LoBrZv/A8PPpVoZ/39gZ7p57xcDLJ8Xw5tkdBrO8DYwAAcRElOYXaxn+/73DwC4vzyAmzsLw58kJsGaQOoAAYiJK868nDGwSXgxvjp1n+Hz7HoNawRFGmFqAAMIw4MBEDaI1gwBAAKEYsKtL/b9x2HSiNYMAQACBA3FmiqKCohrbfQ2nLobn97Yz6Br/JEozCAAEEDgh/eb6d98yYhEDBxsnw5VNZxnOffjLIKltw/D52B6GH89fMVjUnGbEFdgAAQRPiexMzAyfDk9gMJbmYbh17irDueMrGbjExBi8Oy8z4ksnAAEENuDY1S8MjjsnMSgaezJ8Z2Bm+P95PgPX6ycENYMAQACBwyDSUeQ/GzB926kLMEjwsjOwifKvcy05EkxMHgEIIEZKszNAgAEA+j3MEVmacXUAAAAASUVORK5CYII=') no-repeat 0 1px;
+  background-color: #fff;
+  border-top: solid 1px $colour{grey};
+  border-left: solid 1px $colour{grey};
+  border-bottom: solid 1px $colour{light};
+  border-right: solid 1px $colour{light};
+  padding: 2px 0 2px 18px;
+  margin: 0.3em 0;
+  width: 12em;
 }
-
 /* image courtesy of http://www.famfamfam.com/lab/icons/silk/  */
 #authen_passwordfield {
-    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKbSURBVHjaYvz//z8DPvBko+s0IJUJ5U6X8d+dhSwPEEAMIANw4ccbXKYB8f8/P+6BMYgNEkNWAxBAhDV/Pff/5+t5/39/2gcU/gc25P5qpzkwdQABxIjNCzBnS7p2Mfz5tJ+BkVWE4dWRxWA5oBcYHiyyYnj5heGAedYxR4AAwmXAf0mPWQx/3q9n+P/3I9AAMaCoBsPr4x0MDH/+MUgHrGG4P8eF4fVf9gMAAcSEK/D+/3oA1gxm/3kLJG8wSDhWMAjoeTJ8fxjNoJDQzyD0+7sDQACx4DKAkVWcgZGZG2jIV6AJfxn+/37F8OfPO6BhRxl+f/nIwC7xluHPm58MAAHEhMX5ILHp787OYvj/7zvDr7f7Gf59vw804DUwPM4x/P3+loFb0ZfhVlc1wxMu7psAAcSCEd9MjAzswoYMAppmDD9e9DKwcIkwMHFyMPx+dZnh7+9vDDxqwQx3Ji1jeMrJc9W1/JQOQAAheyFT2mctw9+vpxh+fz7A8O1JDQMrEz/QK2YMb47uZpD0SmEAmsRwu7eJ4QUX1wWXklOGIE0AAcQIim9YShOzSmf49W4xw5+PdxlYeIUYWLh9GS6vXPH+3U/Gd3K/vikzcTAzvOTkOmNXeNIUZitAALFAbF4D9N8Bhl+vJjP8/vCUgY1fkoGZ24PhysoV7178Y9vmW3M8FqZBHS3MAAIIZMDnP59P835/3Mnw98t7Bg5xNQZGNnOgzSvfv2ZgX+dbfiwVX14BCCCQAbyMrNwMDKxcDOxi/Az/WU0YLi1b8/E9K8cqr6JjGQwEAEAAMf378+/cn+//GFi5bRiYuMOBzt7w4RMH50IPIjSDAEAAsbz8+Gfdh9VFEr9//WX7//s/009uzlmuWUcqGYgEAAEGAIZWUhP4bjW1AAAAAElFTkSuQmCC') no-repeat 0 1px;
-    padding-left: 18px;
+  background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKbSURBVHjaYvz//z8DPvBko+s0IJUJ5U6X8d+dhSwPEEAMIANw4ccbXKYB8f8/P+6BMYgNEkNWAxBAhDV/Pff/5+t5/39/2gcU/gc25P5qpzkwdQABxIjNCzBnS7p2Mfz5tJ+BkVWE4dWRxWA5oBcYHiyyYnj5heGAedYxR4AAwmXAf0mPWQx/3q9n+P/3I9AAMaCoBsPr4x0MDH/+MUgHrGG4P8eF4fVf9gMAAcSEK/D+/3oA1gxm/3kLJG8wSDhWMAjoeTJ8fxjNoJDQzyD0+7sDQACx4DKAkVWcgZGZG2jIV6AJfxn+/37F8OfPO6BhRxl+f/nIwC7xluHPm58MAAHEhMX5ILHp787OYvj/7zvDr7f7Gf59vw804DUwPM4x/P3+loFb0ZfhVlc1wxMu7psAAcSCEd9MjAzswoYMAppmDD9e9DKwcIkwMHFyMPx+dZnh7+9vDDxqwQx3Ji1jeMrJc9W1/JQOQAAheyFT2mctw9+vpxh+fz7A8O1JDQMrEz/QK2YMb47uZpD0SmEAmsRwu7eJ4QUX1wWXklOGIE0AAcQIim9YShOzSmf49W4xw5+PdxlYeIUYWLh9GS6vXPH+3U/Gd3K/vikzcTAzvOTkOmNXeNIUZitAALFAbF4D9N8Bhl+vJjP8/vCUgY1fkoGZ24PhysoV7178Y9vmW3M8FqZBHS3MAAIIZMDnP59P835/3Mnw98t7Bg5xNQZGNnOgzSvfv2ZgX+dbfiwVX14BCCCQAbyMrNwMDKxcDOxi/Az/WU0YLi1b8/E9K8cqr6JjGQwEAEAAMf378+/cn+//GFi5bRiYuMOBzt7w4RMH50IPIjSDAEAAsbz8+Gfdh9VFEr9//WX7//s/009uzlmuWUcqGYgEAAEGAIZWUhP4bjW1AAAAAElFTkSuQmCC') no-repeat 0 1px;
+  background-color: #fff;
+  border-top: solid 1px $colour{grey};
+  border-left: solid 1px $colour{grey};
+  border-bottom: solid 1px $colour{light};
+  border-right: solid 1px $colour{light};
+  padding: 2px 0 2px 18px;
+  margin: 0.3em 0;
+  width: 12em;
 }
-
+#authen_rememberuserfield {
+  clear: left;
+  margin-left: 8em;
+}
+#authen_loginfield:focus {
+  background-color: #ffc;
+  color: #000;
+}
+#authen_passwordfield:focus {
+  background-color: #ffc;
+  color: #000;
+}
+div.login a {
+  font-size: 80%;
+  color: $colour{dark};
+}
+div.login div.buttons input {
+  border-top: solid 2px $colour{light};
+  border-left: solid 2px $colour{light};
+  border-bottom: solid 2px $colour{grey};
+  border-right: solid 2px $colour{grey};
+  background-color: $colour{lighter};
+  padding: .2em 1em ;
+  font-size: 80%;
+  font-weight: bold;
+  color: $colour{dark};
+}
+div.login div.buttons {
+  display: block;
+  margin: 8px 4px;
+  width: 100%;
+}
+#authen_loginbutton {
+  float: right;
+  margin-right: 1em;
+}
+#authen_registerlink {
+  display: block;
+}
+#authen_forgotpasswordlink {
+  display: block;
+}
 ul.message {
-    margin-top: 0;
-    margin-bottom: 0;
-    list-style: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  list-style: none;
 }
-
 ul.message li {
-    text-indent: -2em;
-    padding: 0px;
-    margin: 0px;
+  text-indent: -2em;
+  padding: 0px;
+  margin: 0px;
+  font-style: italic;
 }
-
 ul.message li.warning {
-    color: red;
+  color: red;
 }
-
 END
 }
 
@@ -1364,7 +1637,12 @@ sub authen_login_runmode {
         $html = $sub->($self);
     }
     else {
-        $html = $authen->login_box;
+        my $login_options = $authen->_config->{LOGIN_FORM} || {};
+        $html = join( "\n",
+            CGI::start_html( -title => $login_options->{TITLE} || 'Sign In' ),
+            $authen->login_box,
+            CGI::end_html(),
+        );
     }
 
     return $html;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use Test::More tests => 67;
+use Test::More tests => 69;
 use Test::Exception;
 use Test::Warn;
 use Scalar::Util;
@@ -93,6 +93,10 @@ lives_ok  { TestAppConfig->new->authen->config(POST_LOGIN_CALLBACK => sub { } ) 
 throws_ok { TestAppConfig->new->authen->config(RENDER_LOGIN => { }) } qr/parameter RENDER_LOGIN is not a coderef/, 'config dies when RENDER_LOGIN is passed a hashref';
 throws_ok { TestAppConfig->new->authen->config(RENDER_LOGIN => ' ') } qr/parameter RENDER_LOGIN is not a coderef/, 'config dies when RENDER_LOGIN is passed a string';
 lives_ok  { TestAppConfig->new->authen->config(RENDER_LOGIN => sub { } ) } 'config accepts RENDER_LOGIN as a coderef';
+
+# test LOGIN_FORM
+throws_ok { TestAppConfig->new->authen->config(LOGIN_FORM => ' ') } qr/parameter LOGIN_FORM is not a hashref/, 'config dies when LOGIN_FORM is passed a string';
+lives_ok  { TestAppConfig->new->authen->config(LOGIN_FORM => { }) } 'config accepts LOGIN_FORM as a hashref';
 
 # test CREDENTIALS
 throws_ok { TestAppConfig->new->authen->config(CREDENTIALS => { }) } qr/parameter CREDENTIALS is not a string/, 'config dies when CREDENTIALS is passed a hashref';

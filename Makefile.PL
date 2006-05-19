@@ -2,22 +2,22 @@
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
-          'PL_FILES' => {},
-          'INSTALLDIRS' => 'site',
           'NAME' => 'CGI::Application::Plugin::Authentication',
           'VERSION_FROM' => 'lib/CGI/Application/Plugin/Authentication.pm',
           'PREREQ_PM' => {
-                           'Scalar::Util' => 0,
-                           'CGI::Cookie' => 0,
-                           'Test::Exception' => 0,
-                           'Attribute::Handlers' => 0,
-                           'Digest::SHA1' => 0,
-                           'Test::More' => 0,
-                           'CGI::Application' => 4,
-                           'Test::Warn' => 0,
-                           'MIME::Base64' => 0,
-                           'Class::ISA' => 0,
-                           'UNIVERSAL::require' => 0
-                         }
+                           'Attribute::Handlers' => '0',
+                           'CGI::Application' => '4',
+                           'CGI::Cookie' => '0',
+                           'Class::ISA' => '0',
+                           'Digest::SHA1' => '0',
+                           'MIME::Base64' => '0',
+                           'Scalar::Util' => '0',
+                           'Test::Exception' => '0',
+                           'Test::More' => '0',
+                           'Test::Warn' => '0',
+                           'UNIVERSAL::require' => '0'
+                         },
+          'INSTALLDIRS' => 'site',
+          'PL_FILES' => {}
         )
 ;

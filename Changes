@@ -1,5 +1,19 @@
 Revision history for Perl extension CGI::Application::Plugin::Authentication.
 
+0.10  Thu May 18 22:59:56 EDT 2006
+
+    - Add support for Authen::Simple (all Authen::Simple modules can
+      be used directly as Drivers)
+    - Made the login page much more customizable:
+      - change any of the text
+      - customize the colours - provide one base colour and lighter and
+        darker shades are automatically generated (requires Color::Calc)
+      - offer to remember the users username in a cookie for the next
+        time they login
+      - add option for a 'forgotten password' URL
+      - add option for a 'register new account' URL
+      - add option to supress the stylesheet so you can provide your own
+
 0.09  Thu Jan 26 20:56:29 EST 2006
 
     API Changes

@@ -3,6 +3,7 @@ Changes
 example/sample.cgi
 lib/CGI/Application/Plugin/Authentication.pm
 lib/CGI/Application/Plugin/Authentication/Driver.pm
+lib/CGI/Application/Plugin/Authentication/Driver/Authen/Simple.pm
 lib/CGI/Application/Plugin/Authentication/Driver/DBI.pm
 lib/CGI/Application/Plugin/Authentication/Driver/Dummy.pm
 lib/CGI/Application/Plugin/Authentication/Driver/Filter/crypt.pm
@@ -33,6 +34,7 @@ t/40_encoder_md5.t
 t/40_encoder_sha1.t
 t/40_encoder_strip.t
 t/40_encoder_uc.t
+t/50_driver_authensimple.t
 t/50_driver_dbi.t
 t/50_driver_dummy.t
 t/50_driver_generic.t
@@ -40,11 +42,11 @@ t/50_driver_htpasswd.t
 t/60_store.t
 t/60_store_cookie.t
 t/60_store_session.t
-t/70_render_login.t
 t/98_pod.t
 t/99_pod_coverage.t
 t/htpasswd
 t/htpasswd2
+t/Authen/Simple/Dummy.pm
 t/Store/Dummy.pm
 t/TestAppDriver.pm
 t/TestAppStore.pm

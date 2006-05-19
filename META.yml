@@ -1,8 +1,8 @@
 ---
 name: CGI-Application-Plugin-Authentication
-version: 0.09
+version: 0.10
 author:
-  - Cees Hek <ceeshek@gmail.com>
+  - 'Cees Hek <ceeshek@gmail.com>'
 abstract: Authentication framework for CGI::Application
 license: perl
 requires:
@@ -17,6 +17,7 @@ requires:
 recommends:
   Apache::Htpasswd: 1.6.1
   CGI::Application::Plugin::Session: 0
+  Color::Calc: 0.12
   Digest::MD5: 0
 build_requires:
   Test::Exception: 0
@@ -25,9 +26,11 @@ build_requires:
 provides:
   CGI::Application::Plugin::Authentication:
     file: lib/CGI/Application/Plugin/Authentication.pm
-    version: 0.09
+    version: 0.10
   CGI::Application::Plugin::Authentication::Driver:
     file: lib/CGI/Application/Plugin/Authentication/Driver.pm
+  CGI::Application::Plugin::Authentication::Driver::Authen::Simple:
+    file: lib/CGI/Application/Plugin/Authentication/Driver/Authen/Simple.pm
   CGI::Application::Plugin::Authentication::Driver::DBI:
     file: lib/CGI/Application/Plugin/Authentication/Driver/DBI.pm
   CGI::Application::Plugin::Authentication::Driver::Dummy:
@@ -54,4 +57,4 @@ provides:
     file: lib/CGI/Application/Plugin/Authentication/Store/Cookie.pm
   CGI::Application::Plugin::Authentication::Store::Session:
     file: lib/CGI/Application/Plugin/Authentication/Store/Session.pm
-generated_by: Module::Build version 0.2611
+generated_by: Module::Build version 0.2612
