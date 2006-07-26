@@ -7,7 +7,7 @@ use CGI::Util;
 
 use Test::More;
 
-plan tests => 14;
+plan tests => 17;
 
 {
 
@@ -17,7 +17,7 @@ plan tests => 14;
 
     __PACKAGE__->authen->config(
         DRIVER => [ 'Generic', { 'test' => '123' } ],
-        STORE  => [ 'Cookie', SECRET => 'foobar' ],
+        STORE  => [ 'Cookie', SECRET => "Shhh, don't tell anyone", NAME => 'CUSTOM_NAME', EXPIRY => '+1y' ],
         CREDENTIALS => [qw(auth_username auth_password)],
     );
 
@@ -26,9 +26,10 @@ plan tests => 14;
         my $cgiapp = shift;
         my $results = shift;
 
-        my ($capauth_data) = $results =~ qr/Set\-Cookie:\s+CAPAUTH_DATA=([\d\w%]+);/;
+        my ($capauth_data, $therest) = $results =~ qr/^Set\-Cookie:\s+CUSTOM_NAME=([\d\w%]+);(.*)$/m;
+        return undef unless $capauth_data;
+        main::like($therest, qr/expires=/, 'Expiry on the cookie is set');
         my $data = CGI::Util::unescape($capauth_data);
-        #print STDERR "data:  $data\n" if $data;
         return $data ? $cgiapp->authen->store->_decode($data) : undef;
     }
 
@@ -39,7 +40,7 @@ plan tests => 14;
         my $new_query = shift;
 
         delete $ENV{'COOKIE'};
-        $old_results =~ qr/Set\-Cookie:\s+(CAPAUTH_DATA=[\d\w%]+);/;
+        $old_results =~ qr/Set\-Cookie:\s+(CUSTOM_NAME=[\d\w%]+);/;
         $ENV{'COOKIE'} = $1 if $1;
     }
 

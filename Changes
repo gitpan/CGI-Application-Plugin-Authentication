@@ -1,5 +1,14 @@
 Revision history for Perl extension CGI::Application::Plugin::Authentication.
 
+0.11  Wed Jul 26 11:16:12 EDT 2006
+
+    - suppress warning about missing Color::Calc unless the user is actually
+      trying to use it (reported by Ron Savage)
+    - explicitly load CGI.pm since some users may be using CGI::Simple
+      (reported by Ron Savage)
+    - Fixed bug in Cookie store where the expiry time of the cookie was ignored
+      (patch by POLETTIX)
+
 0.10  Thu May 18 22:59:56 EDT 2006
 
     - Add support for Authen::Simple (all Authen::Simple modules can

@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 our %__CONFIG;
 
@@ -10,6 +10,7 @@ use Class::ISA ();
 use Scalar::Util ();
 use UNIVERSAL::require;
 use Carp;
+use CGI ();
 
 sub import {
     my $pkg     = shift;
@@ -1353,8 +1354,10 @@ sub login_styles {
     
     if ( grep { ! defined $colour{$_} || index($colour{$_}, '%') >= 0 } qw(lighter light dark darker) ) {
         eval { require Color::Calc };
-        if ($@) {
+        if ($@ && $login_form->{BASE_COLOUR}) {
             warn "Color::Calc is required when specifying a custom BASE_COLOUR, and leaving LIGHTER_COLOUR, LIGHT_COLOUR, DARK_COLOUR or DARKER_COLOUR blank or when providing percentage based colour";
+        }
+        if ($@) {
             $colour{base}    = '#445588';
             $colour{lighter} = '#d0d5e1';
             $colour{light}   = '#a2aac4';

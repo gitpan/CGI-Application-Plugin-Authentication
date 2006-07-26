@@ -210,7 +210,7 @@ sub _postrun_callback {
         -name => $store->cookie_name,
         -value => $rawdata,
     );
-    $cookie_params{'-expiry'} = $store->{cookie}->{options}->{EXPIRY} if $store->{cookie}->{options}->{EXPIRY};
+    $cookie_params{'-expires'} = $store->{cookie}->{options}->{EXPIRY} if $store->{cookie}->{options}->{EXPIRY};
     my $cookie = new CGI::Cookie(%cookie_params);
     $self->header_add(-cookie => [$cookie]);
     return;
