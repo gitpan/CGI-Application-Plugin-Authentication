@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 our %__CONFIG;
 
@@ -806,9 +806,11 @@ sub redirect_after_login {
         $cgiapp->prerun_mode($config->{POST_LOGIN_RUNMODE});
     } elsif ($config->{POST_LOGIN_URL}) {
         $cgiapp->header_add(-location => $config->{POST_LOGIN_URL});
+        $cgiapp->header_type('redirect');
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } elsif (my $destination = $cgiapp->query->param('destination')) {
         $cgiapp->header_add(-location => $destination);
+        $cgiapp->header_type('redirect');
         $cgiapp->prerun_mode('authen_dummy_redirect');
 #--------------------------------------------------
 #     } else {
@@ -838,6 +840,7 @@ sub redirect_to_login {
         $cgiapp->prerun_mode($config->{LOGIN_RUNMODE});
     } elsif ($config->{LOGIN_URL}) {
         $cgiapp->header_add(-location => $config->{LOGIN_URL});
+        $cgiapp->header_type('redirect');
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } else {
         $cgiapp->prerun_mode('authen_login');
@@ -864,9 +867,11 @@ sub redirect_to_logout {
         $cgiapp->prerun_mode($config->{LOGOUT_RUNMODE});
     } elsif ($config->{LOGOUT_URL}) {
         $cgiapp->header_add(-location => $config->{LOGOUT_URL});
+        $cgiapp->header_type('redirect');
         $cgiapp->prerun_mode('authen_dummy_redirect');
     } else {
         $cgiapp->header_add(-location => '/');
+        $cgiapp->header_type('redirect');
         $cgiapp->prerun_mode('authen_dummy_redirect');
     }
 }
@@ -1730,10 +1735,10 @@ sub _time_to_seconds {
 
 In a CGI::Application module:
 
+  use base qw(CGI::Application);
   use CGI::Application::Plugin::AutoRunmode;
   use CGI::Application::Plugin::Session;
   use CGI::Application::Plugin::Authentication;
-  use base qw(CGI::Application);
   
   __PACKAGE__->authen->config(
         DRIVER         => [ 'Generic', { user1 => '123' } ],

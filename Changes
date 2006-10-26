@@ -1,5 +1,14 @@
 Revision history for Perl extension CGI::Application::Plugin::Authentication.
 
+0.12
+
+    Bug Fixes
+    - when issuing a redirect, remember to set header_type to 'redirect'
+      (reported by Graham TerMarsch)
+
+    Other updates
+    - Fix inconsistency in doc example (reported by POLETTIX)
+
 0.11  Wed Jul 26 11:16:12 EDT 2006
 
     - suppress warning about missing Color::Calc unless the user is actually
