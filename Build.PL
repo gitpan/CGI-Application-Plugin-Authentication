@@ -12,6 +12,7 @@ Module::Build->new(
         'CGI::Cookie' => 0,
         'MIME::Base64' => 0,
         'Digest::SHA1' => 0,
+        'perl' => 5.006,
     },
     recommends => {
         'Digest::MD5' => 0,
@@ -21,8 +22,14 @@ Module::Build->new(
     },
     build_requires => {
         'Test::More' => 0,
-        'Test::Exception' => 0,
-        'Test::Warn' => 0,
+        'Test::Warn' => 0.11, # older versions may have problems with fresh Sub::Uplevel
+        'Task::Weaken' => 0, # to be sure that Scalar::Util has weaken
+    },
+    meta_merge => {
+        resources=> {
+            repository => 'http://github.com/cees/cgi-application-plugin-authentication/tree',
+        },
+        keywords => ['cgiapp','Titanium','authentication'],
     },
     create_makefile_pl => 'traditional',
     dist_author => 'Cees Hek <ceeshek@gmail.com>',
