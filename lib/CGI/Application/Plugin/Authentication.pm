@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use 5.006;
 use strict;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 our %__CONFIG;
 
@@ -250,7 +250,7 @@ Here you can choose how we store the authenticated information after a use has s
 logged in.  We need to store the username so that on the next request we can tell the user
 has already logged in, and we do not have to present them with another login form.  If you
 do not provide the STORE option, then the plugin will look to see if you are using the
-L<CGI::Application::Plugin::Session> module nad based on that info use wither the Session
+L<CGI::Application::Plugin::Session> module and based on that info use wither the Session
 module, or fall back on the Cookie module.  If the module requires extra parameters, you
 can pass an array reference that contains as the first parameter the name of the module,
 and the rest of the array should contain key value pairs of options for this module.
@@ -486,6 +486,10 @@ a message given when a login failed
 =item INCLUDE_STYLESHEET (default: 1)
 
 use this to disable the built in stylesheet for the login box so you can provide your own custom styles
+
+=item FORM_SUBMIT_METHOD (default: post)
+
+use this to get the form to submit using 'get' instead of 'post'
 
 =item FOCUS_FORM_ONLOAD (default: 1)
 
@@ -1156,6 +1160,10 @@ sub initialize {
     # but that causes an infinite loop. 
     $self->{initialized} = 1;
 
+    if (UNIVERSAL::can($self->_cgiapp, 'devpopup')) {
+        $self->_cgiapp->add_callback( 'devpopup_report', \&_devpopup_report );
+    }
+
     my $config = $self->_config;
 
     # See if the user is trying to log in
@@ -1236,7 +1244,7 @@ sub login_box {
     my $credentials = $self->credentials;
     my $runmode     = $self->_cgiapp->get_current_runmode;
     my $destination = $query->param('destination') || $query->self_url;
-    my $action      = $query->url( -absolute => 1 );
+    my $action      = $query->url( -absolute => 1, -path_info => 1 );
     my $username    = $credentials->[0];
     my $password    = $credentials->[1];
     my $login_form  = $self->_config->{LOGIN_FORM} || {};
@@ -1255,6 +1263,7 @@ sub login_box {
         FORGOTPASSWORD_LABEL    => 'Forgot Password?',
         INVALIDPASSWORD_MESSAGE => 'Invalid username or password<br />(login attempt %d)',
         INCLUDE_STYLESHEET      => 1,
+        FORM_SUBMIT_METHOD      => 'post',
         %$login_form,
     );
 
@@ -1302,7 +1311,7 @@ EOS
 
     my $html .= <<END;
 $style
-<form name="loginform" method="post" action="${action}">
+<form name="loginform" method="$options{FORM_SUBMIT_METHOD}" action="${action}">
   <div class="login">
     <div class="login_header">
       $options{TITLE}
@@ -1694,6 +1703,42 @@ sub _config {
         $config = $__CONFIG{$class};
     }
     return $config;
+}
+
+sub _devpopup_report {
+    my $cgiapp = shift;
+    my @list;
+    my $self=$cgiapp->authen;
+    if ($self->username) {
+        push @list,['username',$self->username];
+    }
+    my $config = $self->_config;
+    my $field_names = $config->{CREDENTIALS} || [qw(authen_username authen_password)];
+    my $query = $cgiapp->query;
+    foreach my $name (@$field_names) {
+        push @list, [ $name, $query->param($name) ];
+    }
+    my $r=0;
+    my $text = join $/, map {
+                    $r=1-$r;
+                    qq(<tr class="@{[$r?'odd':'even']}"><td valign="top">$_->[0]</td><td>$_->[1]</td></tr>)
+                    }
+                    @list;
+    $cgiapp->devpopup->add_report(
+        title   => 'Authentication',
+        summary => '',
+        report  => qq(
+            <style type="text/css">
+              tr.even{background-color:#eee}
+            </style>
+            <div style="font-size: 80%">
+              <table>
+                <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+                <tbody>$text</tbody>
+              </table>
+            </div>
+        ),
+    );
 }
 
 ###
