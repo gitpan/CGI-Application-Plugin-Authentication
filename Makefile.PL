@@ -11,6 +11,7 @@ WriteMakefile
           'PREREQ_PM' => {
                            'Scalar::Util' => 0,
                            'CGI::Cookie' => 0,
+                           'Test::Exception' => 0,
                            'Attribute::Handlers' => 0,
                            'Digest::SHA1' => 0,
                            'Test::More' => 0,
