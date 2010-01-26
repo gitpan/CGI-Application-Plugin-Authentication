@@ -14,6 +14,8 @@ WriteMakefile
                            'Test::Exception' => 0,
                            'Attribute::Handlers' => 0,
                            'Digest::SHA1' => 0,
+                           'Test::Taint' => 0,
+                           'Test::Regression' => 0,
                            'Test::More' => 0,
                            'CGI::Application' => 4,
                            'Test::Warn' => '0.11',
