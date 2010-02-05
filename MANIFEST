@@ -24,6 +24,7 @@ README
 t/01_basic.t
 t/02_config.t
 t/03_authenticate.t
+t/03_destination.t
 t/03_login_box.t
 t/04_attributes.t
 t/05_autorunmode.t
@@ -51,7 +52,16 @@ t/changes.t
 t/htpasswd
 t/htpasswd2
 t/manifest.t
-t/out/login0
+t/out/cosmetic
+t/out/crlf
+t/out/default
+t/out/green
+t/out/loginurl
+t/out/red
+t/out/redirect
+t/out/restricted
+t/out/runmode
+t/out/username
 t/podspell.t
 t/prereq.t
 t/Store/Dummy.pm
