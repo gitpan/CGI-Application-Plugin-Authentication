@@ -41,6 +41,7 @@ t/50_driver_dbi.t
 t/50_driver_dummy.t
 t/50_driver_generic.t
 t/50_driver_htpasswd.t
+t/50_driver_undefined.t
 t/60_parsimony.t
 t/60_store.t
 t/60_store_cookie.t
@@ -48,6 +49,8 @@ t/60_store_session.t
 t/98_pod.t
 t/99_pod_coverage.t
 t/Authen/Simple/Dummy.pm
+t/CGI/Application/Plugin/Authentication/Driver/Die.pm
+t/CGI/Application/Plugin/Authentication/Driver/Silly.pm
 t/changes.t
 t/htpasswd
 t/htpasswd2

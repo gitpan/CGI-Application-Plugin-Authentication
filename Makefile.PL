@@ -15,7 +15,7 @@ WriteMakefile
                            'Digest::SHA1' => 0,
                            'Test::Taint' => 0,
                            'Test::Regression' => 0,
-                           'CGI' => '3.11',
+                           'CGI' => '3.16',
                            'Test::More' => 0,
                            'CGI::Application' => 4,
                            'Test::Warn' => '0.11',
