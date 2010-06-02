@@ -1,41 +1,31 @@
 ---
-name: CGI-Application-Plugin-Authentication
-version: 0.17_3
+abstract: 'Authentication framework for CGI::Application'
 author:
   - 'Cees Hek <ceeshek@gmail.com>'
-abstract: Authentication framework for CGI::Application
-license: perl
-resources:
-  license: http://dev.perl.org/licenses/
-  repository: http://github.com/cees/cgi-application-plugin-authentication/tree
 build_requires:
   Task::Weaken: 0
   Test::Exception: 0
-  Test::More: 0
+  Test::More: 0.90
   Test::Regression: 0
   Test::Taint: 0
   Test::Warn: 0.11
-requires:
-  Attribute::Handlers: 0
-  CGI: 3.16
-  CGI::Application: 4
-  Class::ISA: 0
-  Digest::SHA1: 0
-  MIME::Base64: 0
-  Scalar::Util: 0
-  UNIVERSAL::require: 0
-  perl: 5.006
-recommends:
-  Apache::Htpasswd: 1.8
-  CGI::Application::Plugin::Session: 0
-  Color::Calc: 0.12
-  Digest::MD5: 0
+  Test::Without::Module: 0
 configure_requires:
-  Module::Build: 0.35
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3607'
+keywords:
+  - cgiapp
+  - Titanium
+  - authentication
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: CGI-Application-Plugin-Authentication
 provides:
   CGI::Application::Plugin::Authentication:
     file: lib/CGI/Application/Plugin/Authentication.pm
-    version: 0.17_3
+    version: 0.17_4
   CGI::Application::Plugin::Authentication::Driver:
     file: lib/CGI/Application/Plugin/Authentication/Driver.pm
   CGI::Application::Plugin::Authentication::Driver::Authen::Simple:
@@ -66,11 +56,22 @@ provides:
     file: lib/CGI/Application/Plugin/Authentication/Store/Cookie.pm
   CGI::Application::Plugin::Authentication::Store::Session:
     file: lib/CGI/Application/Plugin/Authentication/Store/Session.pm
-generated_by: Module::Build version 0.35
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
-keywords:
-  - cgiapp
-  - Titanium
-  - authentication
+recommends:
+  Apache::Htpasswd: 1.8
+  CGI::Application::Plugin::Session: 0
+  Color::Calc: 0.12
+  Digest::MD5: 0
+requires:
+  Attribute::Handlers: 0
+  CGI: 3.16
+  CGI::Application: 4
+  Class::ISA: 0
+  Digest::SHA1: 0
+  MIME::Base64: 0
+  Scalar::Util: 0
+  UNIVERSAL::require: 0
+  perl: 5.006
+resources:
+  license: http://dev.perl.org/licenses/
+  repository: http://github.com/cees/cgi-application-plugin-authentication/tree
+version: 0.17_4

@@ -1,0 +1,5 @@
+^MYMETA.yml$
+^cover_db
+^_build
+^blib
+^.git

@@ -2,8 +2,9 @@
 use Test::More;
 use Test::Taint;
 use Test::Regression;
+use Test::Warn;
 
-plan tests => 7;
+plan tests => 9;
 
 use strict;
 use warnings;
@@ -35,12 +36,12 @@ my $cap_options =
 
     sub one {
         my $self = shift;
-	return "<html><body>ONE</body></html>";
+        return "<html><body>ONE</body></html>";
     }
 
     sub two {
         my $self = shift;
-	return "<html><body>TWO</body></html>";
+        return "<html><body>TWO</body></html>";
     }
 
     sub three {
@@ -61,16 +62,16 @@ $ENV{CGI_APP_RETURN_ONLY} = 1;
 
 # successful login
 subtest 'straightforward use of destination parameter' => sub {
-	plan tests => 5;
-	my $query = CGI->new( { authen_username => 'user1', rm => 'two', authen_password=>'123', destination=>'http://news.bbc.co.uk' } );
+        plan tests => 5;
+        my $query = CGI->new( { authen_username => 'user1', rm => 'two', authen_password=>'123', destination=>'http://news.bbc.co.uk' } );
 
-	my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
-	ok_regression(sub {make_output_timeless($cgiapp->run)}, "t/out/redirect", "redirection");
+        my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
+        ok_regression(sub {make_output_timeless($cgiapp->run)}, "t/out/redirect", "redirection");
 
-	ok($cgiapp->authen->is_authenticated,'login success');
-	is( $cgiapp->authen->username, 'user1', "login success - username set" );
-	is( $cgiapp->authen->login_attempts, 0, "successful login - failed login count" );
-	is( $cgiapp->param('post_login'),1,'successful login - POST_LOGIN_CALLBACK executed' );
+        ok($cgiapp->authen->is_authenticated,'login success');
+        is( $cgiapp->authen->username, 'user1', "login success - username set" );
+        is( $cgiapp->authen->login_attempts, 0, "successful login - failed login count" );
+        is( $cgiapp->param('post_login'),1,'successful login - POST_LOGIN_CALLBACK executed' );
 };
 subtest 'redirection including CRLF' => sub {
         plan tests => 5;
@@ -86,7 +87,7 @@ subtest 'redirection including CRLF' => sub {
 };
 subtest 'redirection with constraining taint check' => sub {
         plan tests => 5;
-	local $cap_options->{DETAINT_URL_REGEXP} = '^(http\:\/\/www\.perl.org\/[\w\_\%\?\&\;\-\/\@\.\+\$\=\#\:\!\*\"\'\(\)\,]+)$';
+        local $cap_options->{DETAINT_URL_REGEXP} = '^(http\:\/\/www\.perl.org\/[\w\_\%\?\&\;\-\/\@\.\+\$\=\#\:\!\*\"\'\(\)\,]+)$';
         my $query = CGI->new( { authen_username => 'user1', rm => 'two', authen_password=>'123', destination=>'http://news.bbc.co.uk' } );
 
         my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
@@ -124,12 +125,15 @@ subtest 'POST_LOGIN_URL usage' => sub {
         is( $cgiapp->param('post_login'),1,'successful login - POST_LOGIN_CALLBACK executed' );
 };
 subtest 'POST_LOGIN_RUNMODE usage' => sub {
-        plan tests => 5;
+        plan tests => 6;
         local $cap_options->{POST_LOGIN_RUNMODE} = 'three';
         local $cap_options->{POST_LOGIN_URL} = 'http://www.perl.org';
         my $query = CGI->new( { authen_username => 'user1', rm => 'two', authen_password=>'123', destination=>'http://news.bbc.co.uk' } );
 
-        my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
+        my $cgiapp;
+        warning_is {$cgiapp = TestAppAuthenticate->new( QUERY => $query );}
+            "authen config warning:  parameter POST_LOGIN_URL ignored since we already have POST_LOGIN_RUNMODE",
+            "checking generated warning";
         ok_regression(sub {make_output_timeless($cgiapp->run)}, "t/out/runmode", "runmode");
 
         ok($cgiapp->authen->is_authenticated,'login success');
@@ -137,7 +141,30 @@ subtest 'POST_LOGIN_RUNMODE usage' => sub {
         is( $cgiapp->authen->login_attempts, 0, "successful login - failed login count" );
         is( $cgiapp->param('post_login'),1,'successful login - POST_LOGIN_CALLBACK executed' );
 };
+subtest 'Redirection failure' => sub {
+        plan tests => 1;
+        local $ENV{PATH_INFO} = '!!!!';
+        local $cap_options->{DETAINT_URL_REGEXP} = '^(\w+)$';
+        my $query = CGI->new( { rm => 'two'} );
 
+        my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
+        ok_regression(sub {make_output_timeless($cgiapp->run)}, "t/out/redirection_failure", "redirection_failure");
+
+};
+subtest 'Various other pemutations' => sub {
+        plan tests => 1;
+        undef local $cap_options->{LOGIN_FORM}->{COMMENT};
+        local $cap_options->{LOGIN_FORM}->{FOCUS_FORM_ONLOAD} = 1;
+        local $cap_options->{LOGIN_FORM}->{REMEMBERUSER_OPTION} = 0;
+        local $cap_options->{LOGIN_FORM}->{REGISTER_URL} = '/register';
+        local $cap_options->{LOGIN_FORM}->{FORGOTPASSWORD_URL} = '/forgot';
+        local $cap_options->{LOGIN_FORM}->{GREY_COLOUR} = 'purple';
+        my $query = CGI->new( { rm => 'two'} );
+
+        my $cgiapp = TestAppAuthenticate->new( QUERY => $query );
+        ok_regression(sub {make_output_timeless($cgiapp->run)}, "t/out/other_permutations", "Other permutations");
+
+};
 
 
 sub make_output_timeless {
@@ -145,6 +172,7 @@ sub make_output_timeless {
         $output =~ s/^(Set-Cookie: CAPAUTH_DATA=\w+\%3D\%3D\; path=\/\; expires=\w{3},\s\d{2}\-\w{3}\-\d{4}\s\d{2}:\d{2}:\d{2}\s\w{3})([\r\n\s]*)$/Set-Cookie: CAPAUTH_DATA=; path=\/; expires=;$2/m;
         $output =~ s/^(Expires:\s\w{3},\s\d{2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\w{3})([\r\n\s]*)$/Expires$2/m;
         $output =~ s/^(Date:\s\w{3},\s\d{2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\w{3})([\r\n\s]*)$/Date$2/m;
+        #$output =~ s/\r//g;
         return $output;
 }
 

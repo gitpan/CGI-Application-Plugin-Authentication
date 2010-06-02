@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use 5.006;
 use strict;
-our $VERSION = '0.17_3';
+our $VERSION = '0.17_4';
 
 our %__CONFIG;
 
@@ -121,14 +121,6 @@ do not provide either a LOGIN_URL or LOGIN_RUNMODE parameter in the configuratio
 If you plan to create your own login page, I would recommend that you start with the HTML
 code for the default login page, so that your login page will contain the correct form
 fields and hidden fields.
-
-TODO:  The login page is designed using CSS style-sheets.  I plan to make this more flexible,
-so that you can easily create your own style-sheets to make this login form more re-usable.
-Also, the default CSS has only really been tested on Mozilla based browser, so if there
-are any CSS gurus out there, I would appreciate some help in getting the default login
-page to work nicely in most browsers.  Currently it should degrade gracefully, but it
-might not be pretty...
-
 
 =head2 Ticket based authentication
 
@@ -1692,7 +1684,15 @@ sub prerun_callback {
         $authen->last_access($now);
     }
 
-    if ($authen->is_protected_runmode($self->get_current_runmode)) {
+    # If a perun mode is set check against that. 
+    # This allows cooperation with plugins such as CAP::ActionDispatch
+    # that also have preun hooks.
+    # Note the comments in the CGI::Application docs on the ordering of
+    # callback execution.
+    my $run_mode = $self->prerun_mode;
+    $run_mode ||= $self->get_current_runmode;
+    
+    if ( $authen->is_protected_runmode( $run_mode ) ) {
         # This runmode requires authentication
         unless ($authen->is_authenticated) {
             # This user is NOT logged in
@@ -1933,6 +1933,78 @@ In a CGI::Application module:
     # regexp call to protected_runmodes above
   }
 
+=head1 COMPATIBILITY WITH L<CGI::Application::Plugin::ActionDispatch>
+
+The prerun callback has been modified so that it will check for the presence of a prerun mode.
+This is for compatibility with L<CGI::Application::Plugin::ActionDispatch>. This
+change should be considered experimental. It is necessary to load the ActionDispatch
+module so that the two prerun callbacks will be called in the correct order.
+
+=head1 RECOMMENDED USAGE
+
+=over
+
+=item CSS
+
+The best practice nowadays is generally considered to be to not have CSS embedded in HTML.
+As one should set LOGIN_FORM/INCLUDE_STYLESHEET to 0 (or equivalent action)
+and put the necessary CSS in your separate CSS style-sheet.
+
+=item Post login destination
+
+Of the various means of selecting a post login destination the most secure would
+seem to be POST_LOGIN_URL. The C<destination> parameter could potentially be hijacked by hackers.
+The POST_LOGIN_RUNMODE parameter requires a hidden parameter that could potentially
+be hijacked.
+
+=item Taint mode
+
+Do run your code under taint mode. It should help protect your application against
+a number of attacks.
+
+=item URL and username checking 
+
+Please set the C<DETAINT_URL_REGEXP> and C<DETAINT_USERNAME_REGEXP> parameters
+as tightly as possible. In particular you should prevent the destination parameter 
+being used to redirect authenticated users to external sites; unless of course that
+is what you want in which case that site should be the only possible external site. 
+
+=item The login form
+
+The HTML currently generated does not seem to be standards compliant as per
+RT bug 58023. Also the default login form includes hidden forms which could
+conceivably be hijacked. For now I would suggest providing your own HTML via the RENDER_LOGIN attribute
+or one of the other means of overriding the login form.
+
+    RENDER_LOGIN => sub {
+        my $self = shift;
+        my $dest = 
+        return <<'EOS';
+    <form id="loginform" method="post" action="/private">
+        <div class="login">
+            <div class="login_header">Sign In</div>
+            <div class="login_content">
+                <ul class="message">
+                    <li>Please enter your username and password in the fields below.</li>
+                </ul>
+                <fieldset>
+                    <label for="auth_username">User Name</label>
+                    <input id="auth_username" tabindex="1" type="text" name="auth_username" size="20" value="" /><br />
+                    <label for="auth_password">Password</label>
+                    <input id="auth_password" tabindex="2" type="password" name="auth_password" size="20" /><br />
+                </fieldset>
+            </div>
+            <div class="login_footer">
+                <div class="buttons">
+                    <input id="authen_loginbutton" tabindex="4" type="submit" name="authen_loginbutton" value="Sign In" class="button" />
+                </div>
+            </div>
+        </div>
+    </form>
+    EOS
+    } 
+
+=back
 
 =head1 TODO
 
@@ -1964,6 +2036,8 @@ to avoid duplicated efforts, send me a note, and I'll let you know of anyone els
 This is alpha software and as such, the features and interface
 are subject to change.  So please check the Changes file when upgrading.
 
+Some of the test scripts appear to be incompatible with versions of
+L<Devel::Cover> later than 0.65.
 
 =head1 SEE ALSO
 
@@ -1979,6 +2053,8 @@ Author: Cees Hek <ceeshek@gmail.com>; Co-maintainer: Nicholas Bamber <nicholas@p
 Thanks to SiteSuite (http://www.sitesuite.com.au) for funding the 
 development of this plugin and for releasing it to the world.
 
+Thanks to Christian Walde for suggesting changes to fix the incompatibility with 
+L<CGI::Application::Plugin::ActionDispatch> and for help with github.
 
 =head1 LICENCE AND COPYRIGHT
 
