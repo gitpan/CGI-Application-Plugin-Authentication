@@ -25,7 +25,7 @@ name: CGI-Application-Plugin-Authentication
 provides:
   CGI::Application::Plugin::Authentication:
     file: lib/CGI/Application/Plugin/Authentication.pm
-    version: 0.17_4
+    version: 0.17_5
   CGI::Application::Plugin::Authentication::Driver:
     file: lib/CGI/Application/Plugin/Authentication/Driver.pm
   CGI::Application::Plugin::Authentication::Driver::Authen::Simple:
@@ -74,4 +74,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: http://github.com/cees/cgi-application-plugin-authentication/tree
-version: 0.17_4
+version: 0.17_5

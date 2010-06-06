@@ -41,6 +41,8 @@ t/40_encoder_strip.t
 t/40_encoder_uc.t
 t/50_driver_authensimple.t
 t/50_driver_dbi.t
+t/50_driver_dbi_bad.t
+t/50_driver_dbi_syntax.t
 t/50_driver_dummy.t
 t/50_driver_generic.t
 t/50_driver_htpasswd.t
