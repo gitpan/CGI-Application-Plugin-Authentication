@@ -15,6 +15,7 @@ WriteMakefile
                            'CGI' => '3.16',
                            'CGI::Application' => 4,
                            'Task::Weaken' => 0,
+                           'Test::MockObject' => 0,
                            'Test::Exception' => 0,
                            'Attribute::Handlers' => 0,
                            'Digest::SHA1' => 0,
