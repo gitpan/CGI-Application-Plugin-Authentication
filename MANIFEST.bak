@@ -28,7 +28,6 @@ t/02_config.t
 t/03_authenticate.t
 t/03_destination.t
 t/03_login_box.t
-t/03_login_box_other.t
 t/03_missing_color.t
 t/04_attributes.t
 t/05_autorunmode.t
@@ -42,9 +41,6 @@ t/40_encoder_strip.t
 t/40_encoder_uc.t
 t/50_driver_authensimple.t
 t/50_driver_dbi.t
-t/50_driver_dbi_die.t
-t/50_driver_dbi_bad.t
-t/50_driver_dbi_syntax.t
 t/50_driver_dummy.t
 t/50_driver_generic.t
 t/50_driver_htpasswd.t
@@ -54,7 +50,6 @@ t/60_parsimony.t
 t/60_store.t
 t/60_store_cookie.t
 t/60_store_session.t
-t/70_action_dispatch.t
 t/98_pod.t
 t/99_pod_coverage.t
 t/Authen/Simple/Dummy.pm
@@ -67,10 +62,8 @@ t/manifest.t
 t/out/cosmetic
 t/out/crlf
 t/out/default
-t/out/frontpage
 t/out/generic_login
 t/out/green
-t/out/login
 t/out/loginurl
 t/out/missing_color
 t/out/other_permutations
@@ -79,7 +72,6 @@ t/out/redirect
 t/out/redirection_failure
 t/out/restricted
 t/out/runmode
-t/out/success
 t/out/username
 t/podspell.t
 t/prereq.t
