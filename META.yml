@@ -6,7 +6,7 @@ build_requires:
   Task::Weaken: 0
   Test::Exception: 0
   Test::MockObject: 0
-  Test::More: 0.90
+  Test::More: 0.93
   Test::Regression: 0
   Test::Taint: 0
   Test::Warn: 0.11
@@ -26,7 +26,7 @@ name: CGI-Application-Plugin-Authentication
 provides:
   CGI::Application::Plugin::Authentication:
     file: lib/CGI/Application/Plugin/Authentication.pm
-    version: 0.18
+    version: 0.18_1
   CGI::Application::Plugin::Authentication::Driver:
     file: lib/CGI/Application/Plugin/Authentication/Driver.pm
   CGI::Application::Plugin::Authentication::Driver::Authen::Simple:
@@ -75,4 +75,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: http://github.com/cees/cgi-application-plugin-authentication/tree
-version: 0.18
+version: 0.18_1

@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use 5.006;
 use strict;
-our $VERSION = '0.18';
+our $VERSION = '0.18_1';
 
 our %__CONFIG;
 
@@ -597,13 +597,6 @@ sub config {
             $config->{POST_LOGIN_RUNMODE} = delete $props->{POST_LOGIN_RUNMODE};
         }
 
-        # Check for depricated POST_LOGIN_DESTINATION
-        if ( defined $props->{POST_LOGIN_DESTINATION} ) {
-            warn "POST_LOGIN_DESTINATION has been depricated in favour of POST_LOGIN_URL";
-            croak "can't use POST_LOGIN_DESTINATION and POST_LOGIN_URL at the same time as they are equivalent" if defined $props->{POST_LOGIN_URL};
-            $props->{POST_LOGIN_URL} = delete $props->{POST_LOGIN_DESTINATION};
-        }
-
         # Check for POST_LOGIN_URL
         if ( defined $props->{POST_LOGIN_URL} ) {
             carp "authen config warning:  parameter POST_LOGIN_URL ignored since we already have POST_LOGIN_RUNMODE"
@@ -620,13 +613,6 @@ sub config {
             $config->{LOGIN_RUNMODE} = delete $props->{LOGIN_RUNMODE};
         }
 
-        # Check for depricated LOGIN_DESTINATION
-        if ( defined $props->{LOGIN_DESTINATION} ) {
-            warn "LOGIN_DESTINATION has been depricated in favour of LOGIN_URL";
-            croak "can't use LOGIN_DESTINATION and LOGIN_URL at the same time as they are equivalent" if defined $props->{LOGIN_URL};
-            $props->{LOGIN_URL} = delete $props->{LOGIN_DESTINATION};
-        }
-
         # Check for LOGIN_URL
         if ( defined $props->{LOGIN_URL} ) {
             carp "authen config warning:  parameter LOGIN_URL ignored since we already have LOGIN_RUNMODE"
@@ -641,13 +627,6 @@ sub config {
             croak "authen config error:  parameter LOGOUT_RUNMODE is not a string"
               if ref $props->{LOGOUT_RUNMODE};
             $config->{LOGOUT_RUNMODE} = delete $props->{LOGOUT_RUNMODE};
-        }
-
-        # Check for depricated LOGOUT_DESTINATION
-        if ( defined $props->{LOGOUT_DESTINATION} ) {
-            warn "LOGOUT_DESTINATION has been depricated in favour of LOGOUT_URL";
-            croak "can't use LOGOUT_DESTINATION and LOGOUT_URL at the same time as they are equivalent" if defined $props->{LOGOUT_URL};
-            $props->{LOGOUT_URL} = delete $props->{LOGOUT_DESTINATION};
         }
 
         # Check for LOGOUT_URL
@@ -1838,7 +1817,7 @@ sub _devpopup_report {
     my $field_names = $config->{CREDENTIALS} || [qw(authen_username authen_password)];
     my $query = $cgiapp->query;
     foreach my $name (@$field_names) {
-        push @list, [ $name, $query->param($name) ];
+        push @list, [ $name, $query->param($name) || ''];
     }
     my $r=0;
     my $text = join $/, map {

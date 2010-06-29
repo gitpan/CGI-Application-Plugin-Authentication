@@ -3,3 +3,5 @@
 ^_build
 ^blib
 ^.git
+^Build$
+.*\.swp$
