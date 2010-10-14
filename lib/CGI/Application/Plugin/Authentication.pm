@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use 5.006;
 use strict;
-our $VERSION = '0.18_1';
+our $VERSION = '0.18_2';
 
 our %__CONFIG;
 
@@ -21,8 +21,6 @@ sub import {
     }
     if ( ! UNIVERSAL::isa($callpkg, 'CGI::Application') ) {
         warn "Calling package is not a CGI::Application module so not setting up the prerun hook.  If you are using \@ISA instead of 'use base', make sure it is in a BEGIN { } block, and make sure these statements appear before the plugin is loaded";
-    } elsif ( ! UNIVERSAL::can($callpkg, 'add_callback')) {
-        warn "You are using an older version of CGI::Application that does not support callbacks, so the prerun method can not be registered automatically (Lookup the prerun_callback method in the docs for more info)";
     } else {
         $callpkg->add_callback( prerun => \&prerun_callback );
     }
@@ -239,11 +237,11 @@ a valid response is received.
 
 =item STORE
 
-Here you can choose how we store the authenticated information after a use has successfully 
+Here you can choose how we store the authenticated information after a user has successfully 
 logged in.  We need to store the username so that on the next request we can tell the user
 has already logged in, and we do not have to present them with another login form.  If you
 do not provide the STORE option, then the plugin will look to see if you are using the
-L<CGI::Application::Plugin::Session> module and based on that info use wither the Session
+L<CGI::Application::Plugin::Session> module and based on that info use either the Session
 module, or fall back on the Cookie module.  If the module requires extra parameters, you
 can pass an array reference that contains as the first parameter the name of the module,
 and the rest of the array should contain key value pairs of options for this module.
@@ -437,6 +435,12 @@ be used if left blank:
 
 =over 4
 
+=item DISPLAY_CLASS (default: Classic)
+
+the class used to display the login form. The alternative is C<Basic>
+which aims for XHTML compliance and leaving style to CSS. See
+L<CGI::Application::Plugin::Authentication::Display> for more details.
+
 =item TITLE (default: Sign In)
 
 the heading at the top of the login box 
@@ -533,17 +537,7 @@ A colour that is another step darker than the dark colour.
 
 A grey colour that is calculated by desaturating the base colour.
 
-
 =back
-
-  LOGIN_FORM => {
-    TITLE              => 'Login',
-    SUBMIT_LABEL       => 'Login',
-    REMEMBERUSER_LABEL => 1,
-    BASE_COLOUR        => '#0099FF',
-    LIGHTER_COLOUR     => '#AAFFFF',
-    DARK_COLOUR        => '50%',
-  }
 
 =back
 
@@ -1268,6 +1262,25 @@ sub initialize {
 
 }
 
+=head2 display 
+
+This method will return the
+L<CGI::Application::Plugin::Authentication::Display> object, creating
+and caching it if necessary.
+
+=cut
+
+sub display {
+    my $self = shift;
+    return $self->{display} if $self->{display};
+    my $config = $self->_config->{LOGIN_FORM} || {};
+    my $class = "CGI::Application::Plugin::Authentication::Display::".
+        ($config->{DISPLAY_CLASS} || 'Classic');
+    $class->require;
+    $self->{display} = $class->new($self->_cgiapp);
+    return $self->{display};
+}
+
 =head2 login_box
 
 This method will return the HTML for a login box that can be
@@ -1279,108 +1292,8 @@ This function will initiate a session or cookie if one has not been created alre
 =cut
 
 sub login_box {
-    my $self        = shift;
-    my $credentials = $self->credentials;
-    my $runmode     = $self->_cgiapp->get_current_runmode;
-    my $destination = $self->_detaint_destination || $self->_detaint_selfurl;
-    my $action      = $self->_detaint_url;
-    my $username    = $credentials->[0];
-    my $password    = $credentials->[1];
-    my $login_form  = $self->_config->{LOGIN_FORM} || {};
-    my %options = (
-        TITLE                   => 'Sign In',
-        USERNAME_LABEL          => 'User Name',
-        PASSWORD_LABEL          => 'Password',
-        SUBMIT_LABEL            => 'Sign In',
-        COMMENT                 => 'Please enter your username and password in the fields below.',
-        REMEMBERUSER_OPTION     => 1,
-        REMEMBERUSER_LABEL      => 'Remember User Name',
-        REMEMBERUSER_COOKIENAME => 'CAPAUTHTOKEN',
-        REGISTER_URL            => '',
-        REGISTER_LABEL          => 'Register Now!',
-        FORGOTPASSWORD_URL      => '',
-        FORGOTPASSWORD_LABEL    => 'Forgot Password?',
-        INVALIDPASSWORD_MESSAGE => 'Invalid username or password<br />(login attempt %d)',
-        INCLUDE_STYLESHEET      => 1,
-        FORM_SUBMIT_METHOD      => 'post',
-        %$login_form,
-    );
-
-    my $messages = '';
-    if ( my $attempts = $self->login_attempts ) {
-        $messages .= '<li class="warning">' . sprintf($options{INVALIDPASSWORD_MESSAGE}, $attempts) . '</li>';
-    } elsif ($options{COMMENT}) {
-        $messages .= "<li>$options{COMMENT}</li>";
-    }
-
-    my $tabindex = 3;
-    my ($rememberuser, $username_value, $register, $forgotpassword, $javascript, $style) = ('','','','','','');
-    if ($options{FOCUS_FORM_ONLOAD}) {
-        $javascript .= "document.loginform.${username}.focus();\n";
-    }
-    if ($options{REMEMBERUSER_OPTION}) {
-        $rememberuser = qq[<input id="authen_rememberuserfield" tabindex="$tabindex" type="checkbox" name="authen_rememberuser" value="1" />$options{REMEMBERUSER_LABEL}<br />];
-        $tabindex++;
-        $username_value = $self->_detaint_username($username, $options{REMEMBERUSER_COOKIENAME});
-        $javascript .= "document.loginform.${username}.select();\n" if $username_value;
-    }
-    my $submit_tabindex = $tabindex++;
-    if ($options{REGISTER_URL}) {
-        $register = qq[<a href="$options{REGISTER_URL}" id="authen_registerlink" tabindex="$tabindex">$options{REGISTER_LABEL}</a>];
-        $tabindex++;
-    }
-    if ($options{FORGOTPASSWORD_URL}) {
-        $forgotpassword = qq[<a href="$options{FORGOTPASSWORD_URL}" id="authen_forgotpasswordlink" tabindex="$tabindex">$options{FORGOTPASSWORD_LABEL}</a>];
-        $tabindex++;
-    }
-    if ($options{INCLUDE_STYLESHEET}) {
-        my $login_styles = $self->login_styles;
-        $style = <<EOS;
-<style type="text/css">
-<!--/* <![CDATA[ */
-$login_styles
-/* ]]> */-->
-</style>
-EOS
-    }
-    if ($javascript) {
-        $javascript = qq[<script type="text/javascript" language="JavaScript">$javascript</script>];
-    }
-
-    my $html .= <<END;
-$style
-<form name="loginform" method="$options{FORM_SUBMIT_METHOD}" action="${action}">
-  <div class="login">
-    <div class="login_header">
-      $options{TITLE}
-    </div>
-    <div class="login_content">
-      <ul class="message">
-${messages}
-      </ul>
-      <fieldset>
-        <label for="${username}">$options{USERNAME_LABEL}</label>
-        <input id="authen_loginfield" tabindex="1" type="text" name="${username}" size="20" value="$username_value" /><br />
-        <label for="${password}">$options{PASSWORD_LABEL}</label>
-        <input id="authen_passwordfield" tabindex="2" type="password" name="${password}" size="20" /><br />
-        ${rememberuser}
-      </fieldset>
-    </div>
-    <div class="login_footer">
-      <div class="buttons">
-        <input id="authen_loginbutton" tabindex="${submit_tabindex}" type="submit" name="authen_loginbutton" value="$options{SUBMIT_LABEL}" class="button" />
-        ${register}
-        ${forgotpassword}
-      </div>
-    </div>
-  </div>
-  <input type="hidden" name="destination" value="${destination}" />
-  <input type="hidden" name="rm" value="${runmode}" />
-</form>
-$javascript
-END
-
-    return $html;
+    my $self = shift;
+    return $self->display->login_box;
 }
 
 =head2 login_styles
@@ -1399,6 +1312,7 @@ sub login_styles {
     my $self = shift;
     my $login_form  = $self->_config->{LOGIN_FORM} || {};
     my %colour = ();
+    warn "CGI::Application::Plugin::Application::login_styles is deprecated";
 
     $colour{base}    = $login_form->{BASE_COLOUR} || '#445588';
     $colour{lighter} = $login_form->{LIGHTER_COLOUR} if $login_form->{LIGHTER_COLOUR};
@@ -1703,10 +1617,9 @@ sub authen_login_runmode {
         $html = $sub->($self);
     }
     else {
-        my $login_options = $authen->_config->{LOGIN_FORM} || {};
         $html = join( "\n",
-            CGI::start_html( -title => $login_options->{TITLE} || 'Sign In' ),
-            $authen->login_box,
+            CGI::start_html( -title => $authen->display->login_title ),
+            $authen->display->login_box,
             CGI::end_html(),
         );
     }
@@ -1925,9 +1838,9 @@ module so that the two prerun callbacks will be called in the correct order.
 
 =item CSS
 
-The best practice nowadays is generally considered to be to not have CSS embedded in HTML.
-As one should set LOGIN_FORM/INCLUDE_STYLESHEET to 0 (or equivalent action)
-and put the necessary CSS in your separate CSS style-sheet.
+The best practice nowadays is generally considered to be to not have CSS
+embedded in HTML. Thus it should be best to set LOGIN_FORM -> DISPLAY_CLASS to 
+'Basic'.
 
 =item Post login destination
 
@@ -1938,8 +1851,8 @@ be hijacked.
 
 =item Taint mode
 
-Do run your code under taint mode. It should help protect your application against
-a number of attacks.
+Do run your code under taint mode. It should help protect your application
+against a number of attacks.
 
 =item URL and username checking 
 
@@ -1953,6 +1866,7 @@ is what you want in which case that site should be the only possible external si
 The HTML currently generated does not seem to be standards compliant as per
 RT bug 58023. Also the default login form includes hidden forms which could
 conceivably be hijacked. 
+Set LOGIN_FORM -> DISPLAY_CLASS to 'Basic' to fix this.
 
 =back
 
@@ -1963,6 +1877,10 @@ in helping out feel free to dig right in.  Many of these things don't need my in
 to avoid duplicated efforts, send me a note, and I'll let you know of anyone else is working in the same area.
 
 =over 4
+
+=item review the code for security bugs and report
+
+=item complete the separation of presentation and logic
 
 =item write a tutorial
 
@@ -2000,17 +1918,26 @@ Author: Cees Hek <ceeshek@gmail.com>; Co-maintainer: Nicholas Bamber <nicholas@p
 
 =head1 CREDITS
 
-Thanks to SiteSuite (http://www.sitesuite.com.au) for funding the 
+Thanks to L<SiteSuite|http://www.sitesuite.com.au> for funding the 
 development of this plugin and for releasing it to the world.
 
 Thanks to Christian Walde for suggesting changes to fix the incompatibility with 
 L<CGI::Application::Plugin::ActionDispatch> and for help with github.
 
+Thanks to Alexandr Ciornii for pointing out some typos.
+
 =head1 LICENCE AND COPYRIGHT
 
 Copyright (c) 2005, SiteSuite. All rights reserved.
+Copyright (c) 2010, Nicholas Bamber. (Portions of the code).
 
 This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+
+The background images in the default login forms are used courtesy of 
+L<www.famfamfam.com|http://www.famfamfam.com/lab/icons/silk/>. Those icons
+are issued under the
+L<Creative Commons Attribution 3.0 License|http://creativecommons.org/licenses/by/3.0/>.
+Those icons are copyrighted 2006 by Mark James <mjames at gmail dot com>
 
 =head1 DISCLAIMER OF WARRANTY
 

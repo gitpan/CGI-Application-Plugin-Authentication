@@ -3,28 +3,28 @@ require 5.006;
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
-          'PL_FILES' => {},
-          'INSTALLDIRS' => 'site',
           'NAME' => 'CGI::Application::Plugin::Authentication',
-          'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/CGI/Application/Plugin/Authentication.pm',
           'PREREQ_PM' => {
-                           'Scalar::Util' => 0,
-                           'Test::Taint' => 0,
-                           'Test::Regression' => 0,
+                           'Attribute::Handlers' => 0,
                            'CGI' => '3.16',
                            'CGI::Application' => 4,
-                           'Task::Weaken' => 0,
-                           'Test::MockObject' => 0,
-                           'Test::Exception' => 0,
-                           'Attribute::Handlers' => 0,
-                           'Digest::SHA1' => 0,
-                           'Test::More' => '0.93',
-                           'Test::Without::Module' => 0,
-                           'Test::Warn' => '0.11',
-                           'MIME::Base64' => 0,
                            'Class::ISA' => 0,
+                           'Digest::SHA1' => 0,
+                           'MIME::Base64' => 0,
+                           'Scalar::Util' => 0,
+                           'Test::Exception' => 0,
+                           'Test::MockObject' => 0,
+                           'Test::More' => '0.93',
+                           'Test::NoWarnings' => 0,
+                           'Test::Regression' => 0,
+                           'Test::Taint' => 0,
+                           'Test::Warn' => '0.11',
+                           'Test::Without::Module' => 0,
                            'UNIVERSAL::require' => 0
-                         }
+                         },
+          'INSTALLDIRS' => 'site',
+          'EXE_FILES' => [],
+          'PL_FILES' => {}
         )
 ;
