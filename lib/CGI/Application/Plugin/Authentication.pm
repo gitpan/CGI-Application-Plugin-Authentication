@@ -2,7 +2,7 @@ package CGI::Application::Plugin::Authentication;
 
 use 5.006;
 use strict;
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 our %__CONFIG;
 
@@ -43,6 +43,9 @@ sub CGI::Application::Authen : ATTR(CODE) {
 
 CGI::Application::Plugin::Authentication - Authentication framework for CGI::Application
 
+=head1 VERSION
+
+This document describes CGI::Application::Plugin::Authentication version 0.20
 
 =head1 SYNOPSIS
 
@@ -383,7 +386,7 @@ Time values are specified in seconds. You can also specify the time by using a n
 following suffixes (m h d w), which represent minutes, hours, days and weeks.  The default
 is 0 which means the login will never timeout.
 
-Note that the login is also dependant on the type of STORE that is used.  If the Session store is used,
+Note that the login is also dependent on the type of STORE that is used.  If the Session store is used,
 and the session expires, then the login will also automatically expire.  The same goes for the Cookie
 store.
 
@@ -991,7 +994,7 @@ sub is_authenticated {
 
 This method will return the number of failed login attempts have been made by this
 user since the last successful login.  This is not a number that can be trusted,
-as it is dependant on the underlying store to be able to return the correct value for
+as it is dependent on the underlying store to be able to return the correct value for
 this user.  For example, if the store uses a cookie based session, the user trying
 to login could delete their cookies, and hence get a new session which will not have
 any login attempts listed.  The number will be cleared upon a successful login.
@@ -1294,197 +1297,6 @@ This function will initiate a session or cookie if one has not been created alre
 sub login_box {
     my $self = shift;
     return $self->display->login_box;
-}
-
-=head2 login_styles
-
-This method returns a style-sheet that can be used for the login box that the
-plugin provides.  The login box automatically includes these default styles in
-the page unless you set the LOGIN_FORM => INCLUDE_STYLESHEET option to 0.  The
-colours used in the returned styles can be customized by providing colour
-options to LOGIN_FORM configuration parameter.
-
-Calling this function, will not itself generate cookies or session ids.
-
-=cut
-
-sub login_styles {
-    my $self = shift;
-    my $login_form  = $self->_config->{LOGIN_FORM} || {};
-    my %colour = ();
-    warn "CGI::Application::Plugin::Application::login_styles is deprecated";
-
-    $colour{base}    = $login_form->{BASE_COLOUR} || '#445588';
-    $colour{lighter} = $login_form->{LIGHTER_COLOUR} if $login_form->{LIGHTER_COLOUR};
-    $colour{light}   = $login_form->{LIGHT_COLOUR} if $login_form->{LIGHT_COLOUR};
-    $colour{dark}    = $login_form->{DARK_COLOUR} if $login_form->{DARK_COLOUR};
-    $colour{darker}  = $login_form->{DARKER_COLOUR} if $login_form->{DARKER_COLOUR};
-    $colour{grey}    = $login_form->{GREY_COLOUR} if $login_form->{GREY_COLOUR};
-    
-    if ( grep { ! defined $colour{$_} || index($colour{$_}, '%') >= 0 } qw(lighter light dark darker) ) {
-        eval { require Color::Calc };
-        if ($@ && $login_form->{BASE_COLOUR}) {
-            warn "Color::Calc is required when specifying a custom BASE_COLOUR, and leaving LIGHTER_COLOUR, LIGHT_COLOUR, DARK_COLOUR or DARKER_COLOUR blank or when providing percentage based colour";
-        }
-        if ($@) {
-            $colour{base}    = '#445588';
-            $colour{lighter} = '#d0d5e1';
-            $colour{light}   = '#a2aac4';
-            $colour{dark}    = '#303c5f';
-            $colour{darker}  = '#1b2236';
-            $colour{grey}    = '#565656';
-        } else {
-            $colour{lighter} = !$colour{lighter}             ? Color::Calc::light_html($colour{base}, 0.75)
-                             : $colour{lighter} =~ m#(\d+)%# ? Color::Calc::light_html($colour{base}, $1 / 100)
-                             : $colour{lighter};
-            $colour{light}   = !$colour{light}               ? Color::Calc::light_html($colour{base}, 0.5)
-                             : $colour{light} =~ m#(\d+)%#   ? Color::Calc::light_html($colour{base}, $1 / 100)
-                             : $colour{light};
-            $colour{dark}    = !$colour{dark}                ? Color::Calc::dark_html($colour{base}, 0.3)
-                             : $colour{dark} =~ m#(\d+)%#    ? Color::Calc::dark_html($colour{base}, $1 / 100)
-                             : $colour{dark};
-            $colour{darker}  = !$colour{darker}              ? Color::Calc::dark_html($colour{base}, 0.6)
-                             : $colour{darker} =~ m#(\d+)%#  ? Color::Calc::dark_html($colour{base}, $1 / 100)
-                             : $colour{darker};
-            $colour{grey}    ||= Color::Calc::bw_html($colour{base});
-        }
-    }
-    $colour{grey} ||= '#565656';
-    return <<END;
-div.login {
-  width: 25em;
-  margin: auto;
-  padding: 3px;
-  font-weight: bold;
-  border: 2px solid $colour{base};
-  color: $colour{dark};
-  font-family: sans-serif;
-}
-div.login div {
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-div.login .login_header {
-  background: $colour{base};
-  border-bottom: 1px solid $colour{darker};
-  height: 1.5em;
-  padding: 0.45em;
-  text-align: left;
-  color: #fff;
-  font-size: 100%;
-  font-weight: bold;
-}
-div.login .login_content {
-  background: $colour{lighter};
-  padding: 0.8em;
-  border-top: 1px solid white;
-  border-bottom: 1px solid $colour{grey};
-  font-size: 80%;
-}
-div.login .login_footer {
-  background: $colour{light};
-  border-top: 1px solid white;
-  border-bottom: 1px solid white;
-  text-align: left;
-  padding: 0;
-  margin: 0;
-  min-height: 2.8em;
-}
-div.login fieldset {
-  margin: 0;
-  padding: 0;
-  border: none;
-  width: 100%;
-}
-div.login label {
-  clear: left;
-  float: left;
-  padding: 0.6em 1em 0.6em 0;
-  width: 8em;
-  text-align: right;
-}
-/* image courtesy of http://www.famfamfam.com/lab/icons/silk/  */
-#authen_loginfield {
-  background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAG5SURBVHjaYvz//z8DJQAggFiIVfh0twHn9w8KD9+/ZBT+9/cfExfvwwc87GxWAAFEtAFf3yl++/9XikHXL56BkYmJ4dKmcoUPT99PBQggRmK8ALT9v4BUBQMLrxxQMztY7N+PjwyXtk76BxBATMRoFjGewsDCx8jw9Oxyht9vboIxCDAxs/wCCCC8LoBrZv/A8PPpVoZ/39gZ7p57xcDLJ8Xw5tkdBrO8DYwAAcRElOYXaxn+/73DwC4vzyAmzsLw58kJsGaQOoAAYiJK868nDGwSXgxvjp1n+Hz7HoNawRFGmFqAAMIw4MBEDaI1gwBAAKEYsKtL/b9x2HSiNYMAQACBA3FmiqKCohrbfQ2nLobn97Yz6Br/JEozCAAEEDgh/eb6d98yYhEDBxsnw5VNZxnOffjLIKltw/D52B6GH89fMVjUnGbEFdgAAQRPiexMzAyfDk9gMJbmYbh17irDueMrGbjExBi8Oy8z4ksnAAEENuDY1S8MjjsnMSgaezJ8Z2Bm+P95PgPX6ycENYMAQACBwyDSUeQ/GzB926kLMEjwsjOwifKvcy05EkxMHgEIIEZKszNAgAEA+j3MEVmacXUAAAAASUVORK5CYII=') no-repeat 0 1px;
-  background-color: #fff;
-  border-top: solid 1px $colour{grey};
-  border-left: solid 1px $colour{grey};
-  border-bottom: solid 1px $colour{light};
-  border-right: solid 1px $colour{light};
-  padding: 2px 0 2px 18px;
-  margin: 0.3em 0;
-  width: 12em;
-}
-/* image courtesy of http://www.famfamfam.com/lab/icons/silk/  */
-#authen_passwordfield {
-  background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAKbSURBVHjaYvz//z8DPvBko+s0IJUJ5U6X8d+dhSwPEEAMIANw4ccbXKYB8f8/P+6BMYgNEkNWAxBAhDV/Pff/5+t5/39/2gcU/gc25P5qpzkwdQABxIjNCzBnS7p2Mfz5tJ+BkVWE4dWRxWA5oBcYHiyyYnj5heGAedYxR4AAwmXAf0mPWQx/3q9n+P/3I9AAMaCoBsPr4x0MDH/+MUgHrGG4P8eF4fVf9gMAAcSEK/D+/3oA1gxm/3kLJG8wSDhWMAjoeTJ8fxjNoJDQzyD0+7sDQACx4DKAkVWcgZGZG2jIV6AJfxn+/37F8OfPO6BhRxl+f/nIwC7xluHPm58MAAHEhMX5ILHp787OYvj/7zvDr7f7Gf59vw804DUwPM4x/P3+loFb0ZfhVlc1wxMu7psAAcSCEd9MjAzswoYMAppmDD9e9DKwcIkwMHFyMPx+dZnh7+9vDDxqwQx3Ji1jeMrJc9W1/JQOQAAheyFT2mctw9+vpxh+fz7A8O1JDQMrEz/QK2YMb47uZpD0SmEAmsRwu7eJ4QUX1wWXklOGIE0AAcQIim9YShOzSmf49W4xw5+PdxlYeIUYWLh9GS6vXPH+3U/Gd3K/vikzcTAzvOTkOmNXeNIUZitAALFAbF4D9N8Bhl+vJjP8/vCUgY1fkoGZ24PhysoV7178Y9vmW3M8FqZBHS3MAAIIZMDnP59P835/3Mnw98t7Bg5xNQZGNnOgzSvfv2ZgX+dbfiwVX14BCCCQAbyMrNwMDKxcDOxi/Az/WU0YLi1b8/E9K8cqr6JjGQwEAEAAMf378+/cn+//GFi5bRiYuMOBzt7w4RMH50IPIjSDAEAAsbz8+Gfdh9VFEr9//WX7//s/009uzlmuWUcqGYgEAAEGAIZWUhP4bjW1AAAAAElFTkSuQmCC') no-repeat 0 1px;
-  background-color: #fff;
-  border-top: solid 1px $colour{grey};
-  border-left: solid 1px $colour{grey};
-  border-bottom: solid 1px $colour{light};
-  border-right: solid 1px $colour{light};
-  padding: 2px 0 2px 18px;
-  margin: 0.3em 0;
-  width: 12em;
-}
-#authen_rememberuserfield {
-  clear: left;
-  margin-left: 8em;
-}
-#authen_loginfield:focus {
-  background-color: #ffc;
-  color: #000;
-}
-#authen_passwordfield:focus {
-  background-color: #ffc;
-  color: #000;
-}
-div.login a {
-  font-size: 80%;
-  color: $colour{dark};
-}
-div.login div.buttons input {
-  border-top: solid 2px $colour{light};
-  border-left: solid 2px $colour{light};
-  border-bottom: solid 2px $colour{grey};
-  border-right: solid 2px $colour{grey};
-  background-color: $colour{lighter};
-  padding: .2em 1em ;
-  font-size: 80%;
-  font-weight: bold;
-  color: $colour{dark};
-}
-div.login div.buttons {
-  display: block;
-  margin: 8px 4px;
-  width: 100%;
-}
-#authen_loginbutton {
-  float: right;
-  margin-right: 1em;
-}
-#authen_registerlink {
-  display: block;
-}
-#authen_forgotpasswordlink {
-  display: block;
-}
-ul.message {
-  margin-top: 0;
-  margin-bottom: 0;
-  list-style: none;
-}
-ul.message li {
-  text-indent: -2em;
-  padding: 0px;
-  margin: 0px;
-  font-style: italic;
-}
-ul.message li.warning {
-  color: red;
-}
-END
 }
 
 =head2 new

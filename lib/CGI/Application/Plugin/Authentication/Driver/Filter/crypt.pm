@@ -2,6 +2,7 @@ package CGI::Application::Plugin::Authentication::Driver::Filter::crypt;
 
 use strict;
 use warnings;
+our $VERSION = '0.20';
 
 sub check {
     my $class    = shift;
@@ -14,10 +15,7 @@ sub check {
 
 sub filter {
     my $class = shift;
-    my $param = lc shift;
-    if (!defined $param) {
-        $param = 'hex';
-    }
+    my $param = lc shift; # not used
     my $plain = shift;
     my $salt  = shift;
     if (!$salt) {
@@ -35,6 +33,9 @@ __END__
 
 CGI::Application::Plugin::Authentication::Driver::Filter::crypt - crypt Filter
 
+=head1 VERSION
+
+This document describes CGI::Application::Plugin::Authentication::Driver::Filter::crypt version 0.20
 
 =head1 METHODS
 

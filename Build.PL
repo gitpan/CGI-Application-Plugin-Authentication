@@ -11,7 +11,7 @@ Module::Build->new(
         'UNIVERSAL::require'  => 0,
         'CGI'                 => '3.16',
         'MIME::Base64'        => 0,
-        'Digest::SHA1'        => 0,
+        'Digest::SHA'         => 0,
         'perl'                => 5.006,
     },
     recommends => {
@@ -25,13 +25,12 @@ Module::Build->new(
         'Test::Warn' =>
           0.11,    # older versions may have problems with fresh Sub::Uplevel
         'Test::MockObject' => 0,
-#        'Task::Weaken'     => 0, # to be sure that Scalar::Util has weaken
         'Test::Exception'  => 0,
         'Test::NoWarnings' => 0,
         'Test::Regression' => 0, # login_box generates a lot of HTML to verify
         'Test::Taint'      => 0,
         'Test::Without::Module'      => 0,
-        
+        'Readonly' => 0,
     },
     meta_merge => {
         resources => {

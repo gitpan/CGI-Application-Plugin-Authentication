@@ -7,12 +7,6 @@ use Test::Warn;
 use Test::Without::Module qw(Color::Calc);
 use English qw(-no_match_vars);
 
-if ($OSNAME eq 'MSWin32') {
-    my $msg = 'Not running these tests on windows yet';
-    plan skip_all => $msg;
-    exit(0);
-}
-
 plan tests => 4;
 
 use strict;

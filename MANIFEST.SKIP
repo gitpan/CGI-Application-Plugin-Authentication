@@ -3,3 +3,8 @@
 ^_build
 ^blib
 ^.git
+^Build$
+.*\.swp$
+.*\.tar\.gz
+^MYMETA\.json$
+.*\.bak$

@@ -1,5 +1,6 @@
 #!/usr/bin/perl -T
 use Test::More tests => 69;
+use Test::Exception;
 use Test::Warn;
 use Scalar::Util;
 use CGI;
@@ -10,18 +11,18 @@ use lib qw(t);
 ###############################################################################
 # FAKE our own versions of these methods; newer Perls fail when we use the
 # versions from Test::Exception, throwing "Bizarre copy of HASH in sassign...".
-sub lives_ok(&;$) {
-    my ($coderef, $name) = @_;
-    local $Test::Builder::Level = $Test::Builder::Level + 1;
-    my $rc = eval { $coderef->() };
-    ok !$@, $name;
-}
-sub throws_ok(&$;$) {
-    my ($coderef, $expecting, $name) = @_;
-    local $Test::Builder::Level = $Test::Builder::Level + 1;
-    my $rc = eval { $coderef->() };
-    like $@, $expecting, $name;
-}
+#sub lives_ok(&;$) {
+#    my ($coderef, $name) = @_;
+#    local $Test::Builder::Level = $Test::Builder::Level + 1;
+#    my $rc = eval { $coderef->() };
+#    ok !$@, $name;
+#}
+#sub throws_ok(&$;$) {
+#    my ($coderef, $expecting, $name) = @_;
+#    local $Test::Builder::Level = $Test::Builder::Level + 1;
+#    my $rc = eval { $coderef->() };
+#    like $@, $expecting, $name;
+#}
 # END FAKE
 ###############################################################################
 

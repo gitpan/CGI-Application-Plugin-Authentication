@@ -7,11 +7,6 @@ use Test::Exception;
 use English qw(-no_match_vars);
 use lib qw(t);
 
-if ($OSNAME eq 'MSWin32') {
-    my $msg = 'Not running these tests on windows yet';
-    plan skip_all => $msg;
-    exit(0);
-}
 plan tests => 6;
 
 use strict;

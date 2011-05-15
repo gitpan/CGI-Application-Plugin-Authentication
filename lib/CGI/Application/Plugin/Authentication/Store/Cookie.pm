@@ -2,10 +2,11 @@ package CGI::Application::Plugin::Authentication::Store::Cookie;
 
 use strict;
 use warnings;
+our $VERSION = '0.20';
 
 use base qw(CGI::Application::Plugin::Authentication::Store);
 use MIME::Base64 ();
-use Digest::SHA1 ();
+use Digest::SHA ();
 use CGI::Cookie  ();
 
 # CONFIGURABLE OPTIONS
@@ -26,6 +27,9 @@ our $SECRET = '';
 
 CGI::Application::Plugin::Authentication::Store::Cookie - Cookie based Store
 
+=head1 VERSION
+
+This document describes CGI::Application::Plugin::Authentication version 0.20
 
 =head1 SYNOPSIS
 
@@ -95,7 +99,7 @@ This module requires the following modules to be available.
 
 =item MIME::Base64
 
-=item Digest::SHA1
+=item Digest::SHA
 
 =item CGI::Cookie
 
@@ -221,13 +225,14 @@ sub _postrun_callback {
 # Take a raw cookie value, and decode and verify the data
 sub _decode {
     my $self = shift;
-    my $rawdata = MIME::Base64::decode(shift) || return;
+    my $rawdata = MIME::Base64::decode(shift);
+    return if not $rawdata;
 
     my %hash = map { split /\=/, $_, 2 } split /\0/, $rawdata;
 
     my $checksum = delete $hash{c};
     # verify checksum
-    if ($checksum eq Digest::SHA1::sha1_base64(join("\0", $self->_secret, sort values %hash))) {
+    if ($checksum eq Digest::SHA::sha1_base64(join("\0", $self->_secret, sort values %hash))) {
         # Checksum verifies so the data is clean
         return \%hash;
     } else {
@@ -244,7 +249,7 @@ sub _encode {
     my $hash = shift;
     my %hash = %$hash;
 
-    my $checksum = Digest::SHA1::sha1_base64(join("\0", $self->_secret, sort values %hash));
+    my $checksum = Digest::SHA::sha1_base64(join("\0", $self->_secret, sort values %hash));
     $hash{c} = $checksum;
     my $rawdata = join("\0", map { join('=', $_, $hash{$_}) } keys %hash);
     return MIME::Base64::encode($rawdata, "");
@@ -257,7 +262,7 @@ sub _secret {
     my $self = shift;
     my $secret = $self->{cookie}->{options}->{SECRET} || $SECRET;
     unless ($secret) {
-        $secret = Digest::SHA1::sha1_base64( ref $self->authen->_cgiapp );
+        $secret = Digest::SHA::sha1_base64( ref $self->authen->_cgiapp );
         warn "using default SECRET!  Please provide a proper SECRET when using the Cookie store (See CGI::Application::Plugin::Authentication::Store::Cookie for details)";
     }
     return $secret;
